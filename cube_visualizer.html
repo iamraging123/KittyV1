@@ -23,7 +23,7 @@
 
   #hud {
     position: fixed; bottom: 500px; right: 20px; z-index: 5;
-    width: 380px;
+    width: 340px;
     background: rgba(0, 0, 0, 0.75); padding: 10px 14px; border-radius: 6px;
     border: 1px solid #333;
     color: #d0d0d0; font-size: 14px;
@@ -54,6 +54,7 @@
 
   #offsetPanel {
     position: fixed; bottom: 20px; left: 20px; z-index: 5;
+    width: 340px;
     background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.1);
     color: #d0d0d0; font-size: 13px; display: none;
@@ -74,6 +75,7 @@
 
   #yawOffsetPanel {
     position: fixed; bottom: 180px; left: 20px; z-index: 5;
+    width: 340px;
     background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.1);
     color: #d0d0d0; font-size: 13px; display: none;
@@ -90,6 +92,7 @@
 
   #recordPanel {
     position: fixed; bottom: 290px; left: 20px; z-index: 5;
+    width: 340px;
     background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.1);
     color: #d0d0d0; font-size: 13px; display: none;
@@ -111,16 +114,16 @@
   #recordPanel .rec-status { margin-top: 6px; color: #777; font-size: 11px; }
 
   #loadModelFloating {
-    position: fixed; top: 20px; right: 20px; z-index: 5;
-    padding: 10px 20px; font-size: 14px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 2px solid #555;
-    border-radius: 6px; font-family: inherit; display: none;
+    width: 100%; margin-top: 10px; padding: 6px 12px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+    display: none;
   }
   #loadModelFloating:hover { background: #555; color: #fff; }
 
   #serialConsole {
     position: fixed; bottom: 20px; right: 20px; z-index: 5;
-    width: 380px; height: 260px;
+    width: 340px; height: 260px;
     background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
     border-radius: 6px; display: none; flex-direction: column;
     font-size: 12px; color: #bbb;
@@ -147,7 +150,7 @@
 
   #graphPanel {
     position: fixed; bottom: 290px; right: 20px; z-index: 5;
-    width: 380px; height: 200px;
+    width: 340px; height: 200px;
     background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
     border-radius: 6px; display: none; flex-direction: column;
   }
@@ -166,8 +169,8 @@
     border-color: rgba(255,255,255,0.04);
     border-style: solid; border-width: 0;
   }
-  .side-bar.left  { left: 0; border-right-width: 1px; width: 340px; }
-  .side-bar.right { right: 0; border-left-width: 1px; width: 420px; }
+  .side-bar.left  { left: 0; border-right-width: 1px; width: 380px; }
+  .side-bar.right { right: 0; border-left-width: 1px; width: 380px; }
 
   #loadingOverlay {
     position: fixed; inset: 0; z-index: 20;
@@ -175,6 +178,42 @@
     background: rgba(20, 20, 20, 0.85);
     color: #d0d0d0; font-size: 22px;
   }
+
+  #serialPortPanel {
+    position: fixed; top: 20px; right: 20px; z-index: 5;
+    width: 340px;
+    background: rgba(0, 0, 0, 0.75); padding: 14px 18px; border-radius: 6px;
+    border: 1px solid #333;
+    color: #d0d0d0; font-size: 13px; display: none;
+  }
+  #serialPortPanel .panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; color: #888;
+  }
+  #serialPortPanel .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle;
+  }
+  #serialPortPanel .status-dot.connected { background: #4caf50; box-shadow: 0 0 6px #4caf5088; }
+  #serialPortPanel .status-dot.disconnected { background: #666; }
+  #serialPortPanel select {
+    width: 100%; padding: 6px 8px; margin-bottom: 8px;
+    background: #1a1a1a; color: #d0d0d0; border: 1px solid #444;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  #serialPortPanel .port-btns {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  #serialPortPanel .port-btns button {
+    padding: 5px 12px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+    flex: 1;
+  }
+  #serialPortPanel .port-btns button:hover { background: #555; color: #fff; }
+  #serialPortPanel .port-btns button:disabled { opacity: 0.4; cursor: default; }
+  #serialPortPanel .port-btns button:disabled:hover { background: #2a2a2a; color: #d0d0d0; }
+  #serialPortPanel .port-status { margin-top: 8px; color: #777; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -204,7 +243,6 @@
   </div>
 </div>
 
-<button id="loadModelFloating">Load .STEP Model</button>
 <div id="loadingOverlay">Loading STEP file...</div>
 <input type="file" id="fileInput" accept=".step,.stp" style="display:none">
 
@@ -254,6 +292,20 @@
     <input type="range" id="yawOff" min="-180" max="180" step="0.5" value="0">
     <span class="val" id="yawOffVal">0.0</span>&deg;</label>
   <button id="resetYawOffsetBtn">Reset</button>
+</div>
+
+<div id="serialPortPanel">
+  <div class="panel-header">
+    <span><span class="status-dot disconnected" id="portStatusDot"></span>Serial Port</span>
+  </div>
+  <select id="portSelect"><option value="">No ports available</option></select>
+  <div class="port-btns">
+    <button id="portRequestBtn">Add Port</button>
+    <button id="portConnectBtn">Connect</button>
+    <button id="portDisconnectBtn" disabled>Disconnect</button>
+  </div>
+  <div class="port-status" id="portStatusText">Not connected</div>
+  <button id="loadModelFloating">Load .STEP Model</button>
 </div>
 
 <div id="offsetPanel">
@@ -537,66 +589,182 @@ logoInput.addEventListener('change', (e) => {
 loadLogo().then(url => { if (url) showLogo(url); }).catch(() => {});
 
 /* ============================================
-   SERIAL READER  (Web Serial API)
+   SERIAL PORT PANEL  (Web Serial API)
    ============================================ */
+const portSelect       = document.getElementById('portSelect');
+const portRequestBtn   = document.getElementById('portRequestBtn');
+const portConnectBtn   = document.getElementById('portConnectBtn');
+const portDisconnectBtn = document.getElementById('portDisconnectBtn');
+const portStatusDot    = document.getElementById('portStatusDot');
+const portStatusText   = document.getElementById('portStatusText');
+
+let knownPorts = [];
+let activePort = null;
+let activeReader = null;
+let readLoopRunning = false;
+
+function portLabel(port, index) {
+  const info = port.getInfo();
+  if (info.usbVendorId) {
+    return 'USB ' + info.usbVendorId.toString(16).toUpperCase() +
+           ':' + (info.usbProductId || 0).toString(16).toUpperCase();
+  }
+  return 'Port ' + (index + 1);
+}
+
+async function refreshPortList() {
+  knownPorts = await navigator.serial.getPorts();
+  portSelect.innerHTML = '';
+  if (knownPorts.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No ports available';
+    portSelect.appendChild(opt);
+    portConnectBtn.disabled = true;
+  } else {
+    knownPorts.forEach((port, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = portLabel(port, i);
+      portSelect.appendChild(opt);
+    });
+    portConnectBtn.disabled = !!activePort;
+  }
+}
+
+function showMainUI() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('sideBarLeft').style.display = 'block';
+  document.getElementById('sideBarRight').style.display = 'block';
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('logoPanel').style.display = 'block';
+  document.getElementById('loadModelFloating').style.display = 'block'; /* inside serialPortPanel */
+  document.getElementById('offsetPanel').style.display = 'block';
+  document.getElementById('yawOffsetPanel').style.display = 'block';
+  document.getElementById('serialConsole').style.display = 'flex';
+  document.getElementById('graphPanel').style.display = 'flex';
+  document.getElementById('recordPanel').style.display = 'block';
+  document.getElementById('serialPortPanel').style.display = 'block';
+}
+
+function setConnectedState(label) {
+  portStatusDot.className = 'status-dot connected';
+  portStatusText.textContent = 'Connected to ' + label;
+  portConnectBtn.disabled = true;
+  portDisconnectBtn.disabled = false;
+  portSelect.disabled = true;
+}
+
+function setDisconnectedState(msg) {
+  portStatusDot.className = 'status-dot disconnected';
+  portStatusText.textContent = msg || 'Not connected';
+  portConnectBtn.disabled = knownPorts.length === 0;
+  portDisconnectBtn.disabled = true;
+  portSelect.disabled = false;
+  activePort = null;
+}
+
+async function readSerialLoop(port) {
+  readLoopRunning = true;
+  const decoder = new TextDecoder();
+  let buf = '';
+
+  while (port.readable && readLoopRunning) {
+    activeReader = port.readable.getReader();
+    try {
+      while (true) {
+        const { value, done } = await activeReader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const ln of lines) {
+          const trimmed = ln.trim();
+          if (trimmed.length > 0) appendConsoleLine(trimmed);
+          const parts = trimmed.split(/\s+/);
+          if (parts.length !== 3) continue;
+          const r = parseFloat(parts[0]);
+          const p = parseFloat(parts[1]);
+          const y = parseFloat(parts[2]);
+          if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
+          roll = r; pitch = p; yaw = y;
+        }
+      }
+    } catch (readErr) {
+      if (readLoopRunning) console.warn('Serial read error:', readErr);
+    } finally {
+      activeReader.releaseLock();
+      activeReader = null;
+    }
+  }
+}
+
+async function connectToPort(port, label) {
+  try {
+    await port.open({ baudRate: 115200 });
+    await new Promise(r => setTimeout(r, 200));
+    activePort = port;
+    setConnectedState(label);
+    showMainUI();
+    readSerialLoop(port).then(() => {
+      if (readLoopRunning) {
+        setDisconnectedState('Port disconnected');
+        activePort = null;
+      }
+    });
+  } catch (err) {
+    setDisconnectedState('Error: ' + err.message);
+    portStatusText.textContent = 'Error: ' + err.message;
+  }
+}
+
+/* "Connect Serial" overlay button — request port + connect immediately */
 document.getElementById('connectBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('status');
   try {
     const port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
-
-    /* Prevent DTR reset from losing early data — give MCU a moment */
-    await new Promise(r => setTimeout(r, 200));
-
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('sideBarLeft').style.display = 'block';
-    document.getElementById('sideBarRight').style.display = 'block';
-    document.getElementById('hud').style.display = 'block';
-    document.getElementById('logoPanel').style.display = 'block';
-    document.getElementById('loadModelFloating').style.display = 'block';
-    document.getElementById('offsetPanel').style.display = 'block';
-    document.getElementById('yawOffsetPanel').style.display = 'block';
-    document.getElementById('serialConsole').style.display = 'flex';
-    document.getElementById('graphPanel').style.display = 'flex';
-    document.getElementById('recordPanel').style.display = 'block';
-
-    /* Read raw bytes directly (more reliable than pipeTo + TextDecoderStream) */
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    while (port.readable) {
-      const reader = port.readable.getReader();
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n');
-          buf = lines.pop();
-
-          for (const ln of lines) {
-            const trimmed = ln.trim();
-            if (trimmed.length > 0) appendConsoleLine(trimmed);
-            const parts = trimmed.split(/\s+/);
-            if (parts.length !== 3) continue;
-            const r = parseFloat(parts[0]);
-            const p = parseFloat(parts[1]);
-            const y = parseFloat(parts[2]);
-            if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
-            roll = r; pitch = p; yaw = y;
-          }
-        }
-      } catch (readErr) {
-        /* Reader error (e.g. USB disconnect) — retry if port still readable */
-        console.warn('Serial read error, retrying:', readErr);
-      } finally {
-        reader.releaseLock();
-      }
-    }
+    await refreshPortList();
+    const idx = knownPorts.indexOf(port);
+    const label = idx >= 0 ? portLabel(port, idx) : 'Serial Port';
+    showMainUI();
+    await connectToPort(port, label);
   } catch (err) {
-    statusEl.textContent = 'Error: ' + err.message;
+    document.getElementById('status').textContent = 'Error: ' + err.message;
   }
 });
+
+/* "Add Port" — request a new port and add it to the dropdown */
+portRequestBtn.addEventListener('click', async () => {
+  try {
+    await navigator.serial.requestPort();
+    await refreshPortList();
+  } catch (err) {
+    /* user cancelled the picker */
+  }
+});
+
+/* "Connect" — connect to the selected port in the dropdown */
+portConnectBtn.addEventListener('click', async () => {
+  const idx = parseInt(portSelect.value);
+  if (isNaN(idx) || !knownPorts[idx]) return;
+  const port = knownPorts[idx];
+  const label = portLabel(port, idx);
+  await connectToPort(port, label);
+});
+
+/* "Disconnect" — close the active port */
+portDisconnectBtn.addEventListener('click', async () => {
+  readLoopRunning = false;
+  try {
+    if (activeReader) await activeReader.cancel();
+    if (activePort) await activePort.close();
+  } catch (e) { /* ignore close errors */ }
+  setDisconnectedState('Disconnected');
+  await refreshPortList();
+});
+
+/* Initial port list population */
+refreshPortList();
 
 /* ============================================
    SERIAL CONSOLE
