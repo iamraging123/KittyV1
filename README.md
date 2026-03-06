@@ -4,7 +4,7 @@ KittyV1 is an STM32-based actively controlled model rocket. It uses rear-based c
 
 ## Features
 
-- **Quaternion attitude estimation** — Mahony complementary filter on an ICM-42670-P IMU, with adaptive accelerometer trust that automatically reduces correction during high-g boost phases
+- **Quaternion attitude estimation** — Mahony filter on an ICM-42670-P IMU, with adaptive accelerometer trust that automatically reduces correction during high-g boost phases
 - **Canard fin control** — 4-channel PCA9685 PWM servo driver for active roll/pitch stabilization via PID control
 - **Multi-sensor fusion** — Dual IMU architecture (low-g for precision, high-g for boost phase), barometer, GPS, and magnetometer
 - **LoRa telemetry** — Wireless downlink of flight data
