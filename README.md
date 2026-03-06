@@ -25,13 +25,12 @@ KittyV1 is an STM32-based actively controlled model rocket. It uses rear-based c
 | RA-02 (SX1278) | LoRa telemetry downlink (SPI, 433 MHz) |
 | SD card | Flight data logging |
 
-## Pin Map
+## Pin Maping
 
 See [config.h](KittyV1Main/config.h) for the full pin assignment table. Key connections:
 
 - **I2C** — `PB6` (SCL), `PB7` (SDA) at 400 kHz
 - **SPI** — `PA5` (SCK), `PA6` (MISO), `PA7` (MOSI)
-- **Canards** — PCA9685 channels 0–3, servo power on channel 15
 
 ## Software Architecture
 
