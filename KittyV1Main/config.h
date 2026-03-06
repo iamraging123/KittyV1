@@ -77,6 +77,9 @@ extern unsigned long nextLoopTime;     // Scheduled start of next loop iteration
 extern unsigned long lastLoopTime;     // Timestamp of previous loop start (us)
 extern float dt;                       // Measured delta-time between loops (s)
 
+/* ---------- IMU Calibration ---------- */
+extern float calibration_samples;      // Number of samples for gyro bias calibration
+
 /* ---------- Serial Print Decimation ---------- */
 #define SERIAL_PRINT_DIVIDER 3        // Print every Nth loop iteration
 extern unsigned long loopCounter;      // Running count of loop iterations
@@ -285,9 +288,9 @@ extern float yaw_setpoint_rad;        // Desired yaw angle (rad)
  ****************************************************/
 
 /* Euler angles extracted from quaternion (deg, for telemetry only) */
-extern float kalman_roll;             // Roll estimate (deg)
-extern float kalman_pitch;            // Pitch estimate (deg, full ±180°)
-extern float kalman_yaw;              // Yaw estimate (deg, drifts without magnetometer)
+extern float mahony_roll;             // Roll estimate (deg)
+extern float mahony_pitch;            // Pitch estimate (deg, full ±180°)
+extern float mahony_yaw;              // Yaw estimate (deg, drifts without magnetometer)
 
 /* Tunable filter gains */
 extern const float MAHONY_KP;         // Proportional accel correction gain (higher = more accel trust)

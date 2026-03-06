@@ -20,8 +20,6 @@
 
 #include "config.h"
 
-float calibration_samples = 100;
-
 /****************************************************
  * ===================== SETUP ======================
  ****************************************************/
@@ -163,16 +161,16 @@ void loop() {
   lastLoopTime = loopStart;
 
   IMUread();
-  IMUKalman(main_accel_x_g, main_accel_y_g, main_accel_z_g, main_gyro_x_dps, main_gyro_y_dps, main_gyro_z_dps, dt);
+  IMUMahony(main_accel_x_g, main_accel_y_g, main_accel_z_g, main_gyro_x_dps, main_gyro_y_dps, main_gyro_z_dps, dt);
 
 
   if (loopCounter % SERIAL_PRINT_DIVIDER == 0) {
     Serial.print(" ");
-    Serial.print(kalman_roll, 2);
+    Serial.print(mahony_roll, 2);
     Serial.print(" ");
-    Serial.print(kalman_pitch, 2);
+    Serial.print(mahony_pitch, 2);
     Serial.print(" ");
-    Serial.println(kalman_yaw, 2);
+    Serial.println(mahony_yaw, 2);
   }
   loopCounter++;
 
@@ -185,7 +183,7 @@ void loop() {
 
 }
 
-void IMUKalman(
+void IMUMahony(
     float accelX, float accelY, float accelZ,
     float gyroX,  float gyroY,  float gyroZ,
     float dt
@@ -244,15 +242,15 @@ void IMUKalman(
   q_z *= inv_norm;
 
   /* ---- EXTRACT EULER ANGLES (degrees, for telemetry/display) ---- */
-  kalman_roll  = atan2f(2.0f * (q_w * q_x + q_y * q_z),
+  mahony_roll  = atan2f(2.0f * (q_w * q_x + q_y * q_z),
                         1.0f - 2.0f * (q_x * q_x + q_y * q_y)) * (180.0f / PI);
 
   float sinp   = 2.0f * (q_w * q_y - q_z * q_x);
   if (sinp >  1.0f) sinp =  1.0f;      /* clamp to avoid NaN from float rounding */
   if (sinp < -1.0f) sinp = -1.0f;
-  kalman_pitch = asinf(sinp) * (180.0f / PI);
+  mahony_pitch = asinf(sinp) * (180.0f / PI);
 
-  kalman_yaw   = atan2f(2.0f * (q_w * q_z + q_x * q_y),
+  mahony_yaw   = atan2f(2.0f * (q_w * q_z + q_x * q_y),
                         1.0f - 2.0f * (q_y * q_y + q_z * q_z)) * (180.0f / PI);
 }
 
@@ -270,42 +268,3 @@ void IMUread() {
 
   main_temp_c = MainIMU_event.temperature;
 }
-
-/****************************************************
- * PREVIOUS EULER-ANGLE KALMAN FILTER (for rollback)
- *
- * Limitations:
- *  - Gimbal lock at ±90° pitch (atan2 singularity)
- *  - No adaptive accel noise during thrust
- *
- * To restore: uncomment this, comment out the
- * quaternion IMUKalman above, and re-add P_roll,
- * P_pitch, Q, R to config.h / globals.cpp.
- ****************************************************
-
-void IMUKalman_Euler(
-    float accelX, float accelY, float accelZ,
-    float gyroX,  float gyroY,  float gyroZ,
-    float dt
-) {
-  kalman_roll  += (gyroX - main_gyro_x_bias) * dt;
-  kalman_pitch += (gyroY - main_gyro_y_bias) * dt;
-  kalman_yaw   += (gyroZ - main_gyro_z_bias) * dt;
-
-  P_roll  += Q;
-  P_pitch += Q;
-
-  float roll_acc  = atan2f(accelY, accelZ) * (180.0f / PI);
-  float pitch_acc = atan2f(-accelX, sqrtf(accelY * accelY + accelZ * accelZ)) * (180.0f / PI);
-
-  float K_roll  = P_roll  / (P_roll  + R);
-  float K_pitch = P_pitch / (P_pitch + R);
-
-  kalman_roll  += K_roll  * (roll_acc  - kalman_roll);
-  kalman_pitch += K_pitch * (pitch_acc - kalman_pitch);
-
-  P_roll  = (1.0f - K_roll)  * P_roll;
-  P_pitch = (1.0f - K_pitch) * P_pitch;
-}
-
-****************************************************/

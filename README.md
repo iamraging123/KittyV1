@@ -17,11 +17,12 @@ KittyV1 is an STM32-based active flight control system for model rockets. It use
 |---|---|
 | STM32 MCU | Main processor |
 | ICM-42670-P | Primary 6-axis IMU (16g / 2000 dps) |
+| H3LIS331DLTR | High-g 3-axis accelerometer (up to 400g) for boost phase |
 | PCA9685 | 16-channel I2C PWM driver for canard servos |
 | BME280 | Barometric pressure / altitude |
 | SAM-M8Q | GPS receiver |
 | Magnetometer | Heading reference |
-| LoRa module | Telemetry downlink (SPI) |
+| RA-02 (SX1278) | LoRa telemetry downlink (SPI, 433 MHz) |
 | SD card | Flight data logging |
 
 ## Pin Map

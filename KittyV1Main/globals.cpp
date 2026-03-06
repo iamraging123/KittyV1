@@ -20,6 +20,8 @@
  * ============ CONTROL LOOP TIMING ================
  ****************************************************/
 
+float calibration_samples = 100;      // Number of samples for gyro bias calibration
+
 unsigned long nextLoopTime = 0;       // Scheduled start of next loop iteration (us)
 unsigned long lastLoopTime = 0;       // Timestamp of previous loop start (us)
 float dt = 0.00000f;                  // Measured delta-time between loops (s)
@@ -161,9 +163,9 @@ float yaw_setpoint_rad   = 0.0f;    // Desired yaw angle (rad)
  ****************************************************/
 
 /* Euler angles extracted from quaternion (deg, for telemetry only) */
-float kalman_roll  = 0.0f;          // Roll estimate (deg)
-float kalman_pitch = 0.0f;          // Pitch estimate (deg)
-float kalman_yaw   = 0.0f;          // Yaw estimate (deg)
+float mahony_roll  = 0.0f;          // Roll estimate (deg)
+float mahony_pitch = 0.0f;          // Pitch estimate (deg)
+float mahony_yaw   = 0.0f;          // Yaw estimate (deg)
 
 /* Tunable filter gains */
 const float MAHONY_KP     = 2.0f;   // Proportional accel correction (higher = more accel trust)
