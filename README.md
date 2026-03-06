@@ -78,9 +78,12 @@ Open `cube_visualizer.html` in a Chromium-based browser (Chrome, Edge) to get a 
 1. **Flash the firmware** — Open `KittyV1Main/KittyV1Main.ino` in the Arduino IDE (or PlatformIO) with STM32 board support installed
 2. **Install libraries** — `ICM42670P`, `LoRa`, `Adafruit_NeoPixel`, `Melopero_SAM_M8Q`, `BME280I2C`
 3. **Connect hardware** — Wire sensors per the pin map in `config.h`
-4. **Upload and test** — Set `START_ONLY` to `true` in `config.h` for a board-check-only mode, or `false` to run the full control loop
-5. **Visualize** — Open `cube_visualizer.html` in Chrome, click "Connect Serial", and select the COM port
+4. **Visualize** — Open `cube_visualizer.html` in Chrome, click "Connect Serial", and select the COM port
 
 ## License
 
-This project does not currently specify a license. All rights reserved by the author.
+Copyright © 2026 Luka Gruev
+All Rights Reserved.
+
+No copying, redistribution, modification, or commercial use
+is permitted without explicit written permission.
