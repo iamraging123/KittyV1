@@ -1,0 +1,33 @@
+# Build artifacts
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.d
+build/
+
+# Arduino IDE
+*.ino.cpp
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE files
+.vscode/*
+!.vscode/extensions.json
+*.code-workspace
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/

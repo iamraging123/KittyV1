@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KittyV1 Attitude Visualizer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #141414; font-family: 'Consolas', 'Courier New', monospace; }
+
+  #overlay {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(20, 20, 20, 0.95);
+  }
+  #connectBtn, #loadModelBtn {
+    padding: 18px 48px; font-size: 20px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 2px solid #666;
+    border-radius: 8px; font-family: inherit;
+  }
+  #connectBtn:hover, #loadModelBtn:hover { background: #555; color: #fff; }
+  #status { color: #777; margin-top: 16px; font-size: 14px; }
+  .overlay-btns { display: flex; gap: 16px; }
+
+  #hud {
+    position: fixed; bottom: 500px; right: 20px; z-index: 5;
+    width: 380px;
+    background: rgba(0, 0, 0, 0.75); padding: 10px 14px; border-radius: 6px;
+    border: 1px solid #333;
+    color: #d0d0d0; font-size: 14px;
+    pointer-events: none; display: none;
+  }
+  #hud .hud-row { display: flex; justify-content: space-around; }
+  #hud .hud-item { text-align: center; }
+  #hud .label { color: #777; font-size: 11px; }
+  #hud .val-roll  { color: #c27c6e; }
+  #hud .val-pitch { color: #7aab85; }
+  #hud .val-yaw   { color: #8a9bae; }
+
+  #logoPanel {
+    position: fixed; top: 20px; left: 20px; z-index: 5;
+    display: none;
+  }
+  #logoPanel img {
+    max-width: 200px; max-height: 80px; object-fit: contain;
+    display: block;
+  }
+  #logoUploadBtn {
+    padding: 8px 16px; cursor: pointer;
+    background: rgba(0,0,0,0.6); color: #777;
+    border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px;
+    font-family: inherit; font-size: 12px;
+  }
+  #logoUploadBtn:hover { background: rgba(0,0,0,0.8); color: #bbb; border-color: rgba(255,255,255,0.3); }
+
+  #offsetPanel {
+    position: fixed; bottom: 20px; left: 20px; z-index: 5;
+    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #d0d0d0; font-size: 13px; display: none;
+  }
+  #offsetPanel label { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  #offsetPanel input[type=range] { width: 120px; accent-color: #888; }
+  #offsetPanel .axis-label { width: 14px; font-weight: bold; }
+  #offsetPanel .axis-x { color: #c27c6e; }
+  #offsetPanel .axis-y { color: #7aab85; }
+  #offsetPanel .axis-z { color: #8a9bae; }
+  #offsetPanel .val { width: 50px; text-align: right; font-family: inherit; }
+  #resetOffsetBtn, #autoCenterBtn {
+    margin-top: 8px; padding: 4px 12px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  #resetOffsetBtn:hover, #autoCenterBtn:hover { background: #555; color: #fff; }
+
+  #yawOffsetPanel {
+    position: fixed; bottom: 180px; left: 20px; z-index: 5;
+    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #d0d0d0; font-size: 13px; display: none;
+  }
+  #yawOffsetPanel label { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  #yawOffsetPanel input[type=range] { width: 120px; accent-color: #888; }
+  #yawOffsetPanel .val { width: 50px; text-align: right; font-family: inherit; }
+  #resetYawOffsetBtn {
+    margin-top: 8px; padding: 4px 12px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  #resetYawOffsetBtn:hover { background: #555; color: #fff; }
+
+  #recordPanel {
+    position: fixed; bottom: 290px; left: 20px; z-index: 5;
+    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #d0d0d0; font-size: 13px; display: none;
+  }
+  #recordPanel .rec-channels { display: flex; gap: 12px; margin: 6px 0; }
+  #recordPanel .rec-channels label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #recordPanel .rec-channels input[type=checkbox] { accent-color: #888; }
+  #recordPanel .rec-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  #recordPanel select {
+    padding: 3px 6px; background: #2a2a2a; color: #d0d0d0;
+    border: 1px solid #555; border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  #recordPanel button {
+    padding: 4px 12px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  #recordPanel button:hover { background: #555; color: #fff; }
+  #recordPanel .rec-status { margin-top: 6px; color: #777; font-size: 11px; }
+
+  #loadModelFloating {
+    position: fixed; top: 20px; right: 20px; z-index: 5;
+    padding: 10px 20px; font-size: 14px; cursor: pointer;
+    background: #2a2a2a; color: #d0d0d0; border: 2px solid #555;
+    border-radius: 6px; font-family: inherit; display: none;
+  }
+  #loadModelFloating:hover { background: #555; color: #fff; }
+
+  #serialConsole {
+    position: fixed; bottom: 20px; right: 20px; z-index: 5;
+    width: 380px; height: 260px;
+    background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
+    border-radius: 6px; display: none; flex-direction: column;
+    font-size: 12px; color: #bbb;
+  }
+  #serialConsole .console-header {
+    padding: 6px 12px; background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid #333; color: #777; font-size: 11px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 6px 6px 0 0; flex-shrink: 0;
+  }
+  #clearConsoleBtn {
+    padding: 2px 8px; cursor: pointer; background: #2a2a2a;
+    color: #d0d0d0; border: 1px solid #555; border-radius: 3px;
+    font-family: inherit; font-size: 11px;
+  }
+  #clearConsoleBtn:hover { background: #555; color: #fff; }
+  #consoleLines {
+    flex: 1; overflow-y: auto; padding: 6px 10px;
+    white-space: pre; line-height: 1.5;
+  }
+  #consoleLines::-webkit-scrollbar { width: 6px; }
+  #consoleLines::-webkit-scrollbar-track { background: transparent; }
+  #consoleLines::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+  #graphPanel {
+    position: fixed; bottom: 290px; right: 20px; z-index: 5;
+    width: 380px; height: 200px;
+    background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
+    border-radius: 6px; display: none; flex-direction: column;
+  }
+  #graphPanel .graph-header {
+    padding: 6px 12px; background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid #333; color: #777; font-size: 11px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 6px 6px 0 0; flex-shrink: 0;
+  }
+  #graphPanel .graph-legend span { margin-right: 10px; font-size: 11px; }
+  #graphCanvas { width: 100%; flex: 1; }
+
+  .side-bar {
+    position: fixed; top: 0; bottom: 0; width: 260px; z-index: 2;
+    background: rgba(0, 0, 0, 0.35); display: none;
+    border-color: rgba(255,255,255,0.04);
+    border-style: solid; border-width: 0;
+  }
+  .side-bar.left  { left: 0; border-right-width: 1px; width: 340px; }
+  .side-bar.right { right: 0; border-left-width: 1px; width: 420px; }
+
+  #loadingOverlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(20, 20, 20, 0.85);
+    color: #d0d0d0; font-size: 22px;
+  }
+</style>
+</head>
+<body>
+
+<div class="side-bar left" id="sideBarLeft"></div>
+<div class="side-bar right" id="sideBarRight"></div>
+
+<div id="overlay">
+  <div class="overlay-btns">
+    <button id="connectBtn">Connect Serial</button>
+    <button id="loadModelBtn">Load .STEP Model</button>
+  </div>
+  <p id="status">Select your COM port when prompted (115200 baud)</p>
+</div>
+
+<div id="logoPanel">
+  <button id="logoUploadBtn">Upload Logo</button>
+  <img id="logoImg" style="display:none;">
+</div>
+<input type="file" id="logoInput" accept="image/png" style="display:none">
+
+<div id="hud">
+  <div class="hud-row">
+    <div class="hud-item"><span class="label">Roll</span><br><span class="val-roll" id="rollVal">0.00</span>&deg;</div>
+    <div class="hud-item"><span class="label">Pitch</span><br><span class="val-pitch" id="pitchVal">0.00</span>&deg;</div>
+    <div class="hud-item"><span class="label">Yaw</span><br><span class="val-yaw" id="yawVal">0.00</span>&deg;</div>
+  </div>
+</div>
+
+<button id="loadModelFloating">Load .STEP Model</button>
+<div id="loadingOverlay">Loading STEP file...</div>
+<input type="file" id="fileInput" accept=".step,.stp" style="display:none">
+
+<div id="graphPanel">
+  <div class="graph-header">
+    <div class="graph-legend">
+      <span style="color:#c27c6e;">Roll</span>
+      <span style="color:#7aab85;">Pitch</span>
+      <span style="color:#8a9bae;">Yaw</span>
+    </div>
+  </div>
+  <canvas id="graphCanvas"></canvas>
+</div>
+
+<div id="serialConsole">
+  <div class="console-header">
+    <span>Serial Monitor</span>
+    <button id="clearConsoleBtn">Clear</button>
+  </div>
+  <div id="consoleLines"></div>
+</div>
+
+<div id="recordPanel">
+  <div style="margin-bottom:6px; color:#888;">Recording</div>
+  <div class="rec-channels">
+    <label><input type="checkbox" id="recRoll" checked> <span style="color:#c27c6e;">Roll</span></label>
+    <label><input type="checkbox" id="recPitch" checked> <span style="color:#7aab85;">Pitch</span></label>
+    <label><input type="checkbox" id="recYaw" checked> <span style="color:#8a9bae;">Yaw</span></label>
+  </div>
+  <div class="rec-row">
+    <select id="recDuration">
+      <option value="0">Manual</option>
+      <option value="5">5s</option>
+      <option value="10">10s</option>
+      <option value="30">30s</option>
+      <option value="60">60s</option>
+    </select>
+    <button id="recToggleBtn">Start</button>
+    <button id="recExportBtn">Export CSV</button>
+  </div>
+  <div class="rec-status" id="recStatus">Stopped</div>
+</div>
+
+<div id="yawOffsetPanel">
+  <div style="margin-bottom:6px; color:#888;">Yaw Offset</div>
+  <label><span style="color:#8a9bae; font-weight:bold;">Y</span>
+    <input type="range" id="yawOff" min="-180" max="180" step="0.5" value="0">
+    <span class="val" id="yawOffVal">0.0</span>&deg;</label>
+  <button id="resetYawOffsetBtn">Reset</button>
+</div>
+
+<div id="offsetPanel">
+  <div style="margin-bottom:6px; color:#888;">Model Offset</div>
+  <label><span class="axis-label axis-x">X</span>
+    <input type="range" id="offX" min="-10" max="10" step="0.01" value="0">
+    <span class="val" id="offXVal">0.00</span></label>
+  <label><span class="axis-label axis-y">Y</span>
+    <input type="range" id="offY" min="-10" max="10" step="0.01" value="0">
+    <span class="val" id="offYVal">0.00</span></label>
+  <label><span class="axis-label axis-z">Z</span>
+    <input type="range" id="offZ" min="-10" max="10" step="0.01" value="0">
+    <span class="val" id="offZVal">0.00</span></label>
+  <button id="resetOffsetBtn">Reset</button>
+  <button id="autoCenterBtn">Auto Center</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ---------- shared attitude state ---------- */
+let roll = 0, pitch = 0, yaw = 0;
+
+/* ============================================
+   THREE.JS SCENE
+   ============================================ */
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x141414);
+
+const camera   = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(3, 2, 3);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+/* Orbit controls — right-click to rotate camera, scroll to zoom */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+
+/* Rotation group — handles attitude rotation at the origin.
+   Content group — sits inside, holds the model geometry.
+   Offset shifts contentGroup so the rotation axis passes
+   through a specific point on the model. */
+const rotationGroup = new THREE.Group();
+const contentGroup  = new THREE.Group();
+rotationGroup.add(contentGroup);
+scene.add(rotationGroup);
+
+/* Default box */
+const geometry = new THREE.BoxGeometry(1.0, 0.15, 1);
+const boxMaterials = [
+  new THREE.MeshStandardMaterial({ color: 0xff4444 }), // +X  red
+  new THREE.MeshStandardMaterial({ color: 0x991111 }), // -X  dark red
+  new THREE.MeshStandardMaterial({ color: 0x44ff44 }), // +Y  green
+  new THREE.MeshStandardMaterial({ color: 0x119911 }), // -Y  dark green
+  new THREE.MeshStandardMaterial({ color: 0x4444ff }), // +Z  blue
+  new THREE.MeshStandardMaterial({ color: 0x111199 }), // -Z  dark blue
+];
+const cube = new THREE.Mesh(geometry, boxMaterials);
+contentGroup.add(cube);
+
+scene.add(new THREE.GridHelper(6, 24, 0x444444, 0x222222));
+scene.add(new THREE.AxesHelper(2));
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+fill.position.set(-3, -2, -5);
+scene.add(fill);
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ============================================
+   STEP FILE LOADER  (occt-import-js, lazy)
+   ============================================ */
+/* ---------- IndexedDB helpers for STEP file persistence ---------- */
+function openStepDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('StepFileStore', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('files');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+async function saveStepBytes(bytes) {
+  const db = await openStepDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readwrite');
+    tx.objectStore('files').put(bytes, 'current');
+    tx.oncomplete = resolve;
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+async function loadStepBytes() {
+  const db = await openStepDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('files', 'readonly');
+    const req = tx.objectStore('files').get('current');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+let occt = null;
+
+async function initOcct() {
+  if (occt) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/occt-import-js@0.0.23/dist/occt-import-js.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load occt-import-js'));
+    document.head.appendChild(s);
+  });
+  occt = await occtimportjs({
+    locateFile: (name) => `https://cdn.jsdelivr.net/npm/occt-import-js@0.0.23/dist/${name}`
+  });
+}
+
+async function loadStepFromBytes(buffer, save) {
+  const loading = document.getElementById('loadingOverlay');
+  loading.style.display = 'flex';
+
+  try {
+    await initOcct();
+
+    const result = occt.ReadStepFile(buffer, null);
+
+    /* Clear previous model from content group */
+    while (contentGroup.children.length > 0) {
+      const child = contentGroup.children[0];
+      contentGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    }
+
+    /* Build meshes from STEP data */
+    for (let i = 0; i < result.meshes.length; i++) {
+      const md = result.meshes[i];
+      const geo = new THREE.BufferGeometry();
+
+      geo.setAttribute('position',
+        new THREE.Float32BufferAttribute(md.attributes.position.array, 3));
+
+      if (md.attributes.normal) {
+        geo.setAttribute('normal',
+          new THREE.Float32BufferAttribute(md.attributes.normal.array, 3));
+      } else {
+        geo.computeVertexNormals();
+      }
+
+      geo.setIndex(new THREE.BufferAttribute(new Uint32Array(md.index.array), 1));
+
+      let color = 0x888888;
+      if (md.color) {
+        color = new THREE.Color(md.color[0], md.color[1], md.color[2]);
+      }
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: color,
+        side: THREE.DoubleSide,
+        metalness: 0.3,
+        roughness: 0.6
+      });
+
+      contentGroup.add(new THREE.Mesh(geo, mat));
+    }
+
+    /* Center and scale to fit ~2 units */
+    const box3 = new THREE.Box3().setFromObject(contentGroup);
+    const center = box3.getCenter(new THREE.Vector3());
+    const size = box3.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2.0 / maxDim;
+
+    for (const child of contentGroup.children) {
+      child.position.sub(center);
+      child.scale.setScalar(scale);
+    }
+
+    if (save) await saveStepBytes(buffer);
+
+  } catch (err) {
+    alert('Failed to load STEP file: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+/* File input triggers */
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    loadStepFromBytes(buffer, true);
+  }
+  e.target.value = '';
+});
+
+/* Restore saved STEP file on load */
+loadStepBytes().then(bytes => {
+  if (bytes) loadStepFromBytes(bytes, false);
+}).catch(() => {});
+
+document.getElementById('loadModelBtn').addEventListener('click', () => fileInput.click());
+document.getElementById('loadModelFloating').addEventListener('click', () => fileInput.click());
+
+/* ============================================
+   LOGO UPLOAD  (PNG, persisted in IndexedDB)
+   ============================================ */
+const logoInput = document.getElementById('logoInput');
+const logoImg   = document.getElementById('logoImg');
+const logoBtn   = document.getElementById('logoUploadBtn');
+
+function showLogo(dataUrl) {
+  logoImg.src = dataUrl;
+  logoImg.style.display = 'block';
+  logoBtn.style.display = 'none';
+}
+
+async function saveLogo(dataUrl) {
+  const db = await openStepDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readwrite');
+    tx.objectStore('files').put(dataUrl, 'logo');
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadLogo() {
+  const db = await openStepDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readonly');
+    const req = tx.objectStore('files').get('logo');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+logoBtn.addEventListener('click', () => logoInput.click());
+logoImg.addEventListener('click', () => logoInput.click());
+logoImg.style.cursor = 'pointer';
+logoImg.title = 'Click to change logo';
+
+logoInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    showLogo(reader.result);
+    saveLogo(reader.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+/* Restore saved logo */
+loadLogo().then(url => { if (url) showLogo(url); }).catch(() => {});
+
+/* ============================================
+   SERIAL READER  (Web Serial API)
+   ============================================ */
+document.getElementById('connectBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('status');
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+
+    /* Prevent DTR reset from losing early data — give MCU a moment */
+    await new Promise(r => setTimeout(r, 200));
+
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('sideBarLeft').style.display = 'block';
+    document.getElementById('sideBarRight').style.display = 'block';
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('logoPanel').style.display = 'block';
+    document.getElementById('loadModelFloating').style.display = 'block';
+    document.getElementById('offsetPanel').style.display = 'block';
+    document.getElementById('yawOffsetPanel').style.display = 'block';
+    document.getElementById('serialConsole').style.display = 'flex';
+    document.getElementById('graphPanel').style.display = 'flex';
+    document.getElementById('recordPanel').style.display = 'block';
+
+    /* Read raw bytes directly (more reliable than pipeTo + TextDecoderStream) */
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (port.readable) {
+      const reader = port.readable.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+
+          for (const ln of lines) {
+            const trimmed = ln.trim();
+            if (trimmed.length > 0) appendConsoleLine(trimmed);
+            const parts = trimmed.split(/\s+/);
+            if (parts.length !== 3) continue;
+            const r = parseFloat(parts[0]);
+            const p = parseFloat(parts[1]);
+            const y = parseFloat(parts[2]);
+            if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
+            roll = r; pitch = p; yaw = y;
+          }
+        }
+      } catch (readErr) {
+        /* Reader error (e.g. USB disconnect) — retry if port still readable */
+        console.warn('Serial read error, retrying:', readErr);
+      } finally {
+        reader.releaseLock();
+      }
+    }
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+});
+
+/* ============================================
+   SERIAL CONSOLE
+   ============================================ */
+const consoleLinesEl = document.getElementById('consoleLines');
+const MAX_CONSOLE_LINES = 200;
+let consoleLineCount = 0;
+
+function appendConsoleLine(text) {
+  const span = document.createElement('span');
+  span.textContent = text + '\n';
+  consoleLinesEl.appendChild(span);
+  consoleLineCount++;
+  if (consoleLineCount > MAX_CONSOLE_LINES) {
+    consoleLinesEl.removeChild(consoleLinesEl.firstChild);
+    consoleLineCount--;
+  }
+  consoleLinesEl.scrollTop = consoleLinesEl.scrollHeight;
+}
+
+document.getElementById('clearConsoleBtn').addEventListener('click', () => {
+  consoleLinesEl.innerHTML = '';
+  consoleLineCount = 0;
+});
+
+/* ============================================
+   MODEL OFFSET CONTROLS
+   ============================================ */
+const modelOffset = new THREE.Vector3(0, 0, 0);
+
+function setupOffsetSlider(id, valId, axis) {
+  const slider = document.getElementById(id);
+  const valEl  = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    modelOffset[axis] = v;
+    valEl.textContent = v.toFixed(2);
+  });
+}
+setupOffsetSlider('offX', 'offXVal', 'x');
+setupOffsetSlider('offY', 'offYVal', 'y');
+setupOffsetSlider('offZ', 'offZVal', 'z');
+
+document.getElementById('resetOffsetBtn').addEventListener('click', () => {
+  modelOffset.set(0, 0, 0);
+  for (const [id, valId] of [['offX','offXVal'],['offY','offYVal'],['offZ','offZVal']]) {
+    document.getElementById(id).value = 0;
+    document.getElementById(valId).textContent = '0.00';
+  }
+});
+
+function applyOffsetToSliders() {
+  const mapping = [['offX','offXVal','x'],['offY','offYVal','y'],['offZ','offZVal','z']];
+  for (const [id, valId, axis] of mapping) {
+    document.getElementById(id).value = modelOffset[axis];
+    document.getElementById(valId).textContent = modelOffset[axis].toFixed(2);
+  }
+}
+
+document.getElementById('autoCenterBtn').addEventListener('click', () => {
+  const box3 = new THREE.Box3().setFromObject(contentGroup);
+  if (box3.isEmpty()) return;
+  const center = box3.getCenter(new THREE.Vector3());
+  modelOffset.set(-center.x, -center.y, -center.z);
+  applyOffsetToSliders();
+});
+
+/* ============================================
+   YAW OFFSET CONTROL
+   ============================================ */
+let yawOffset = 0;
+
+const yawOffSlider = document.getElementById('yawOff');
+const yawOffValEl  = document.getElementById('yawOffVal');
+yawOffSlider.addEventListener('input', () => {
+  yawOffset = parseFloat(yawOffSlider.value);
+  yawOffValEl.textContent = yawOffset.toFixed(1);
+});
+
+document.getElementById('resetYawOffsetBtn').addEventListener('click', () => {
+  yawOffset = 0;
+  yawOffSlider.value = 0;
+  yawOffValEl.textContent = '0.0';
+});
+
+/* ============================================
+   DATA RECORDING
+   ============================================ */
+let isRecording = false;
+let recordData = [];
+let recordStartTime = 0;
+let lastRecordTime = 0;
+let recordTimer = null;
+const RECORD_INTERVAL = 100; /* ms between samples (~10/sec) */
+
+const recToggleBtn  = document.getElementById('recToggleBtn');
+const recExportBtn  = document.getElementById('recExportBtn');
+const recStatusEl   = document.getElementById('recStatus');
+const recDurationEl = document.getElementById('recDuration');
+
+function stopRecording() {
+  isRecording = false;
+  if (recordTimer) { clearTimeout(recordTimer); recordTimer = null; }
+  recToggleBtn.textContent = 'Start';
+  recStatusEl.textContent = 'Stopped \u2014 ' + recordData.length + ' samples';
+}
+
+recToggleBtn.addEventListener('click', () => {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    recordData = [];
+    recordStartTime = performance.now();
+    lastRecordTime = 0;
+    isRecording = true;
+    recToggleBtn.textContent = 'Stop';
+    const dur = parseInt(recDurationEl.value);
+    if (dur > 0) {
+      recordTimer = setTimeout(stopRecording, dur * 1000);
+    }
+  }
+});
+
+function recordSample() {
+  if (!isRecording) return;
+  const now = performance.now();
+  if (now - lastRecordTime < RECORD_INTERVAL) return;
+  lastRecordTime = now;
+  const t = ((now - recordStartTime) / 1000).toFixed(3);
+  recordData.push({ t, roll, pitch, yaw });
+  const dur = parseInt(recDurationEl.value);
+  if (dur > 0) {
+    const elapsed = (now - recordStartTime) / 1000;
+    recStatusEl.textContent = 'Recording\u2026 ' + recordData.length + ' samples (' + Math.min(elapsed, dur).toFixed(1) + '/' + dur + 's)';
+  } else {
+    recStatusEl.textContent = 'Recording\u2026 ' + recordData.length + ' samples';
+  }
+}
+
+recExportBtn.addEventListener('click', () => {
+  if (recordData.length === 0) { recStatusEl.textContent = 'No data to export'; return; }
+  const wantRoll  = document.getElementById('recRoll').checked;
+  const wantPitch = document.getElementById('recPitch').checked;
+  const wantYaw   = document.getElementById('recYaw').checked;
+
+  let header = 'Time(s)';
+  if (wantRoll)  header += ',Roll';
+  if (wantPitch) header += ',Pitch';
+  if (wantYaw)   header += ',Yaw';
+
+  const lines = [header];
+  for (const d of recordData) {
+    let row = d.t;
+    if (wantRoll)  row += ',' + d.roll.toFixed(2);
+    if (wantPitch) row += ',' + d.pitch.toFixed(2);
+    if (wantYaw)   row += ',' + d.yaw.toFixed(2);
+    lines.push(row);
+  }
+
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const ts = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + '_' +
+    String(now.getHours()).padStart(2, '0') + '-' +
+    String(now.getMinutes()).padStart(2, '0') + '-' +
+    String(now.getSeconds()).padStart(2, '0');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'attitude_recording_' + ts + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  recStatusEl.textContent = 'Exported ' + recordData.length + ' samples';
+});
+
+/* ============================================
+   ATTITUDE GRAPH
+   ============================================ */
+const graphCanvas = document.getElementById('graphCanvas');
+const graphCtx = graphCanvas.getContext('2d');
+const GRAPH_POINTS = 200;
+const graphData = { roll: [], pitch: [], yaw: [] };
+
+function drawGraph() {
+  const rect = graphCanvas.parentElement.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height - graphCanvas.offsetTop;
+  if (graphCanvas.width !== w * devicePixelRatio || graphCanvas.height !== h * devicePixelRatio) {
+    graphCanvas.width  = w * devicePixelRatio;
+    graphCanvas.height = h * devicePixelRatio;
+    graphCanvas.style.width  = w + 'px';
+    graphCanvas.style.height = h + 'px';
+  }
+
+  const ctx = graphCtx;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  /* Push new data */
+  graphData.roll.push(roll);
+  graphData.pitch.push(pitch);
+  graphData.yaw.push(yaw);
+  if (graphData.roll.length > GRAPH_POINTS) {
+    graphData.roll.shift();
+    graphData.pitch.shift();
+    graphData.yaw.shift();
+  }
+
+  /* Auto-range from data */
+  let min = Infinity, max = -Infinity;
+  for (const key of ['roll', 'pitch', 'yaw']) {
+    for (const v of graphData[key]) {
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  const pad = Math.max((max - min) * 0.1, 5);
+  min -= pad; max += pad;
+
+  /* Grid lines */
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 0.5;
+  const gridSteps = 5;
+  for (let i = 0; i <= gridSteps; i++) {
+    const y = (i / gridSteps) * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  /* Zero line */
+  if (min < 0 && max > 0) {
+    const zeroY = h - ((0 - min) / (max - min)) * h;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY); ctx.stroke();
+  }
+
+  /* Y-axis labels */
+  ctx.fillStyle = '#666';
+  ctx.font = '10px Consolas, monospace';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = max - (i / gridSteps) * (max - min);
+    const y = (i / gridSteps) * h;
+    ctx.fillText(val.toFixed(0) + '\u00B0', 2, y);
+  }
+
+  /* Draw lines */
+  const colors = { roll: '#c27c6e', pitch: '#7aab85', yaw: '#8a9bae' };
+  for (const key of ['roll', 'pitch', 'yaw']) {
+    const arr = graphData[key];
+    if (arr.length < 2) continue;
+    ctx.strokeStyle = colors[key];
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < arr.length; i++) {
+      const x = (i / (GRAPH_POINTS - 1)) * w;
+      const y = h - ((arr[i] - min) / (max - min)) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+/* ============================================
+   ANIMATION LOOP
+   ============================================ */
+const DEG2RAD = Math.PI / 180;
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  controls.update();
+  contentGroup.position.copy(modelOffset);
+  rotationGroup.rotation.order = 'YZX';
+  rotationGroup.rotation.set(roll * DEG2RAD, (yaw - yawOffset) * DEG2RAD, -pitch * DEG2RAD);
+
+  document.getElementById('rollVal').textContent  = roll.toFixed(2).padStart(7);
+  document.getElementById('pitchVal').textContent = pitch.toFixed(2).padStart(7);
+  document.getElementById('yawVal').textContent   = yaw.toFixed(2).padStart(7);
+
+  recordSample();
+  drawGraph();
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>
