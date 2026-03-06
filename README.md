@@ -1,6 +1,6 @@
 # KittyV1 — Rocket Flight Computer
 
-KittyV1 is an STM32-based active flight control system for model rockets. It uses canard fins driven by a PCA9685 servo controller to stabilize the rocket during flight, with real-time attitude estimation from a quaternion-based Mahony filter.
+KittyV1 is an STM32-based actively controlled model rocket. It uses rear-based canard fins driven by a PCA9685 servo controller to stabilize the rocket during flight, with real-time attitude estimation from a quaternion-based Mahony filter.
 
 ## Features
 
