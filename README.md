@@ -51,7 +51,7 @@ The main loop runs at **250 Hz**. Each iteration:
 
 ### Attitude Filter
 
-The Mahony filter maintains a unit quaternion (no gimbal lock) and uses an adaptive proportional gain:
+The Mahony filter maintains a unit quaternion avoiding gimbal lock and uses an adaptive proportional gain:
 
 ```
 Kp_effective = MAHONY_KP / (1 + |accel_magnitude - 1g| * R_ACCEL_SCALE)
