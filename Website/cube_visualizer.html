@@ -3,218 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>KittyV1 Attitude Visualizer</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { overflow: hidden; background: #141414; font-family: 'Consolas', 'Courier New', monospace; }
-
-  #overlay {
-    position: fixed; inset: 0; z-index: 10;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(20, 20, 20, 0.95);
-  }
-  #connectBtn, #loadModelBtn {
-    padding: 18px 48px; font-size: 20px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 2px solid #666;
-    border-radius: 8px; font-family: inherit;
-  }
-  #connectBtn:hover, #loadModelBtn:hover { background: #555; color: #fff; }
-  #status { color: #777; margin-top: 16px; font-size: 14px; }
-  .overlay-btns { display: flex; gap: 16px; }
-
-  #hud {
-    position: fixed; bottom: 500px; right: 20px; z-index: 5;
-    width: 340px;
-    background: rgba(0, 0, 0, 0.75); padding: 10px 14px; border-radius: 6px;
-    border: 1px solid #333;
-    color: #d0d0d0; font-size: 14px;
-    pointer-events: none; display: none;
-  }
-  #hud .hud-row { display: flex; justify-content: space-around; }
-  #hud .hud-item { text-align: center; }
-  #hud .label { color: #777; font-size: 11px; }
-  #hud .val-roll  { color: #c27c6e; }
-  #hud .val-pitch { color: #7aab85; }
-  #hud .val-yaw   { color: #8a9bae; }
-
-  #logoPanel {
-    position: fixed; top: 20px; left: 20px; z-index: 5;
-    display: none;
-  }
-  #logoPanel img {
-    max-width: 200px; max-height: 80px; object-fit: contain;
-    display: block;
-  }
-  #logoUploadBtn {
-    padding: 8px 16px; cursor: pointer;
-    background: rgba(0,0,0,0.6); color: #777;
-    border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px;
-    font-family: inherit; font-size: 12px;
-  }
-  #logoUploadBtn:hover { background: rgba(0,0,0,0.8); color: #bbb; border-color: rgba(255,255,255,0.3); }
-
-  #offsetPanel {
-    position: fixed; bottom: 20px; left: 20px; z-index: 5;
-    width: 340px;
-    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #d0d0d0; font-size: 13px; display: none;
-  }
-  #offsetPanel label { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-  #offsetPanel input[type=range] { width: 120px; accent-color: #888; }
-  #offsetPanel .axis-label { width: 14px; font-weight: bold; }
-  #offsetPanel .axis-x { color: #c27c6e; }
-  #offsetPanel .axis-y { color: #7aab85; }
-  #offsetPanel .axis-z { color: #8a9bae; }
-  #offsetPanel .val { width: 50px; text-align: right; font-family: inherit; }
-  #resetOffsetBtn, #autoCenterBtn {
-    margin-top: 8px; padding: 4px 12px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-  }
-  #resetOffsetBtn:hover, #autoCenterBtn:hover { background: #555; color: #fff; }
-
-  #yawOffsetPanel {
-    position: fixed; bottom: 180px; left: 20px; z-index: 5;
-    width: 340px;
-    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #d0d0d0; font-size: 13px; display: none;
-  }
-  #yawOffsetPanel label { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-  #yawOffsetPanel input[type=range] { width: 120px; accent-color: #888; }
-  #yawOffsetPanel .val { width: 50px; text-align: right; font-family: inherit; }
-  #resetYawOffsetBtn {
-    margin-top: 8px; padding: 4px 12px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-  }
-  #resetYawOffsetBtn:hover { background: #555; color: #fff; }
-
-  #recordPanel {
-    position: fixed; bottom: 290px; left: 20px; z-index: 5;
-    width: 340px;
-    background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #d0d0d0; font-size: 13px; display: none;
-  }
-  #recordPanel .rec-channels { display: flex; gap: 12px; margin: 6px 0; }
-  #recordPanel .rec-channels label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-  #recordPanel .rec-channels input[type=checkbox] { accent-color: #888; }
-  #recordPanel .rec-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-  #recordPanel select {
-    padding: 3px 6px; background: #2a2a2a; color: #d0d0d0;
-    border: 1px solid #555; border-radius: 4px; font-family: inherit; font-size: 12px;
-  }
-  #recordPanel button {
-    padding: 4px 12px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-  }
-  #recordPanel button:hover { background: #555; color: #fff; }
-  #recordPanel .rec-status { margin-top: 6px; color: #777; font-size: 11px; }
-
-  #loadModelFloating {
-    width: 100%; margin-top: 10px; padding: 6px 12px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-    display: none;
-  }
-  #loadModelFloating:hover { background: #555; color: #fff; }
-
-  #serialConsole {
-    position: fixed; bottom: 20px; right: 20px; z-index: 5;
-    width: 340px; height: 260px;
-    background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
-    border-radius: 6px; display: none; flex-direction: column;
-    font-size: 12px; color: #bbb;
-  }
-  #serialConsole .console-header {
-    padding: 6px 12px; background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid #333; color: #777; font-size: 11px;
-    display: flex; justify-content: space-between; align-items: center;
-    border-radius: 6px 6px 0 0; flex-shrink: 0;
-  }
-  #clearConsoleBtn {
-    padding: 2px 8px; cursor: pointer; background: #2a2a2a;
-    color: #d0d0d0; border: 1px solid #555; border-radius: 3px;
-    font-family: inherit; font-size: 11px;
-  }
-  #clearConsoleBtn:hover { background: #555; color: #fff; }
-  #consoleLines {
-    flex: 1; overflow-y: auto; padding: 6px 10px;
-    white-space: pre; line-height: 1.5;
-  }
-  #consoleLines::-webkit-scrollbar { width: 6px; }
-  #consoleLines::-webkit-scrollbar-track { background: transparent; }
-  #consoleLines::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-
-  #graphPanel {
-    position: fixed; bottom: 290px; right: 20px; z-index: 5;
-    width: 340px; height: 200px;
-    background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
-    border-radius: 6px; display: none; flex-direction: column;
-  }
-  #graphPanel .graph-header {
-    padding: 6px 12px; background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid #333; color: #777; font-size: 11px;
-    display: flex; justify-content: space-between; align-items: center;
-    border-radius: 6px 6px 0 0; flex-shrink: 0;
-  }
-  #graphPanel .graph-legend span { margin-right: 10px; font-size: 11px; }
-  #graphCanvas { width: 100%; flex: 1; }
-
-  .side-bar {
-    position: fixed; top: 0; bottom: 0; width: 260px; z-index: 2;
-    background: rgba(0, 0, 0, 0.35); display: none;
-    border-color: rgba(255,255,255,0.04);
-    border-style: solid; border-width: 0;
-  }
-  .side-bar.left  { left: 0; border-right-width: 1px; width: 380px; }
-  .side-bar.right { right: 0; border-left-width: 1px; width: 380px; }
-
-  #loadingOverlay {
-    position: fixed; inset: 0; z-index: 20;
-    display: none; align-items: center; justify-content: center;
-    background: rgba(20, 20, 20, 0.85);
-    color: #d0d0d0; font-size: 22px;
-  }
-
-  #serialPortPanel {
-    position: fixed; top: 20px; right: 20px; z-index: 5;
-    width: 340px;
-    background: rgba(0, 0, 0, 0.75); padding: 14px 18px; border-radius: 6px;
-    border: 1px solid #333;
-    color: #d0d0d0; font-size: 13px; display: none;
-  }
-  #serialPortPanel .panel-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 10px; color: #888;
-  }
-  #serialPortPanel .status-dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    margin-right: 6px; vertical-align: middle;
-  }
-  #serialPortPanel .status-dot.connected { background: #4caf50; box-shadow: 0 0 6px #4caf5088; }
-  #serialPortPanel .status-dot.disconnected { background: #666; }
-  #serialPortPanel select {
-    width: 100%; padding: 6px 8px; margin-bottom: 8px;
-    background: #1a1a1a; color: #d0d0d0; border: 1px solid #444;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-  }
-  #serialPortPanel .port-btns {
-    display: flex; gap: 6px; flex-wrap: wrap;
-  }
-  #serialPortPanel .port-btns button {
-    padding: 5px 12px; cursor: pointer;
-    background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
-    border-radius: 4px; font-family: inherit; font-size: 12px;
-    flex: 1;
-  }
-  #serialPortPanel .port-btns button:hover { background: #555; color: #fff; }
-  #serialPortPanel .port-btns button:disabled { opacity: 0.4; cursor: default; }
-  #serialPortPanel .port-btns button:disabled:hover { background: #2a2a2a; color: #d0d0d0; }
-  #serialPortPanel .port-status { margin-top: 8px; color: #777; font-size: 11px; }
-</style>
+<link rel="stylesheet" href="cube_visualizer.css">
 </head>
 <body>
 
@@ -224,7 +13,7 @@
 <div id="overlay">
   <div class="overlay-btns">
     <button id="connectBtn">Connect Serial</button>
-    <button id="loadModelBtn">Load .STEP Model</button>
+    <button id="loadModelBtn">Load Model</button>
   </div>
   <p id="status">Select your COM port when prompted (115200 baud)</p>
 </div>
@@ -243,8 +32,8 @@
   </div>
 </div>
 
-<div id="loadingOverlay">Loading STEP file...</div>
-<input type="file" id="fileInput" accept=".step,.stp" style="display:none">
+<div id="loadingOverlay">Loading model...</div>
+<input type="file" id="fileInput" accept=".step,.stp,.obj,.mtl" multiple style="display:none">
 
 <div id="graphPanel">
   <div class="graph-header">
@@ -263,6 +52,26 @@
     <button id="clearConsoleBtn">Clear</button>
   </div>
   <div id="consoleLines"></div>
+</div>
+
+<div id="lightPanel">
+  <div style="margin-bottom:6px; color:#888;">Lighting</div>
+  <label><span class="light-label">Ambient</span>
+    <input type="range" id="ltAmbient" min="0" max="3" step="0.05" value="0.7">
+    <input type="number" class="val-input" id="ltAmbientVal" value="0.70" step="0.05"></label>
+  <label><span class="light-label">Key</span>
+    <input type="range" id="ltKey" min="0" max="3" step="0.05" value="1.2">
+    <input type="number" class="val-input" id="ltKeyVal" value="1.20" step="0.05"></label>
+  <label><span class="light-label">Fill</span>
+    <input type="range" id="ltFill" min="0" max="3" step="0.05" value="0.5">
+    <input type="number" class="val-input" id="ltFillVal" value="0.50" step="0.05"></label>
+  <label><span class="light-label">Rim</span>
+    <input type="range" id="ltRim" min="0" max="3" step="0.05" value="0.35">
+    <input type="number" class="val-input" id="ltRimVal" value="0.35" step="0.05"></label>
+  <label><span class="light-label">Exposure</span>
+    <input type="range" id="ltExposure" min="0.1" max="3" step="0.05" value="1.0">
+    <input type="number" class="val-input" id="ltExposureVal" value="1.00" step="0.05"></label>
+  <button id="resetLightBtn">Reset</button>
 </div>
 
 <div id="recordPanel">
@@ -287,10 +96,16 @@
 </div>
 
 <div id="yawOffsetPanel">
-  <div style="margin-bottom:6px; color:#888;">Yaw Offset</div>
+  <div style="margin-bottom:6px; color:#888;">Attitude Offset</div>
+  <label><span style="color:#c27c6e; font-weight:bold;">R</span>
+    <input type="range" id="rollOff" min="-180" max="180" step="0.5" value="0">
+    <input type="number" class="val-input" id="rollOffVal" value="0.0" step="0.5">&deg;</label>
+  <label><span style="color:#7aab85; font-weight:bold;">P</span>
+    <input type="range" id="pitchOff" min="-180" max="180" step="0.5" value="0">
+    <input type="number" class="val-input" id="pitchOffVal" value="0.0" step="0.5">&deg;</label>
   <label><span style="color:#8a9bae; font-weight:bold;">Y</span>
     <input type="range" id="yawOff" min="-180" max="180" step="0.5" value="0">
-    <span class="val" id="yawOffVal">0.0</span>&deg;</label>
+    <input type="number" class="val-input" id="yawOffVal" value="0.0" step="0.5">&deg;</label>
   <button id="resetYawOffsetBtn">Reset</button>
 </div>
 
@@ -305,22 +120,23 @@
     <button id="portDisconnectBtn" disabled>Disconnect</button>
   </div>
   <div class="port-status" id="portStatusText">Not connected</div>
-  <button id="loadModelFloating">Load .STEP Model</button>
+  <button id="loadModelFloating">Load Model</button>
+  <div class="port-hint">OBJ + MTL: hold Ctrl and select both files together</div>
 </div>
 
 <div id="offsetPanel">
   <div style="margin-bottom:6px; color:#888;">Model Offset</div>
   <label><span class="axis-label axis-x">X</span>
     <input type="range" id="offX" min="-10" max="10" step="0.01" value="0">
-    <span class="val" id="offXVal">0.00</span></label>
+    <input type="number" class="val-input" id="offXVal" value="0.00" step="0.01"></label>
   <label><span class="axis-label axis-y">Y</span>
     <input type="range" id="offY" min="-10" max="10" step="0.01" value="0">
-    <span class="val" id="offYVal">0.00</span></label>
+    <input type="number" class="val-input" id="offYVal" value="0.00" step="0.01"></label>
   <label><span class="axis-label axis-z">Z</span>
     <input type="range" id="offZ" min="-10" max="10" step="0.01" value="0">
-    <span class="val" id="offZVal">0.00</span></label>
+    <input type="number" class="val-input" id="offZVal" value="0.00" step="0.01"></label>
   <button id="resetOffsetBtn">Reset</button>
-  <button id="autoCenterBtn">Auto Center</button>
+  <button id="pickCenterBtn">Pick Center</button>
 </div>
 
 <script type="importmap">
@@ -333,6 +149,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
 
 /* ---------- shared attitude state ---------- */
 let roll = 0, pitch = 0, yaw = 0;
@@ -350,6 +168,10 @@ camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(devicePixelRatio);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 /* Orbit controls — right-click to rotate camera, scroll to zoom */
@@ -370,26 +192,77 @@ scene.add(rotationGroup);
 /* Default box */
 const geometry = new THREE.BoxGeometry(1.0, 0.15, 1);
 const boxMaterials = [
-  new THREE.MeshStandardMaterial({ color: 0xff4444 }), // +X  red
-  new THREE.MeshStandardMaterial({ color: 0x991111 }), // -X  dark red
-  new THREE.MeshStandardMaterial({ color: 0x44ff44 }), // +Y  green
-  new THREE.MeshStandardMaterial({ color: 0x119911 }), // -Y  dark green
-  new THREE.MeshStandardMaterial({ color: 0x4444ff }), // +Z  blue
-  new THREE.MeshStandardMaterial({ color: 0x111199 }), // -Z  dark blue
+  new THREE.MeshStandardMaterial({ color: 0xff3030, metalness: 0.15, roughness: 0.4 }), // +X  red
+  new THREE.MeshStandardMaterial({ color: 0xaa1818, metalness: 0.15, roughness: 0.4 }), // -X  dark red
+  new THREE.MeshStandardMaterial({ color: 0x30ff50, metalness: 0.15, roughness: 0.4 }), // +Y  green
+  new THREE.MeshStandardMaterial({ color: 0x18aa28, metalness: 0.15, roughness: 0.4 }), // -Y  dark green
+  new THREE.MeshStandardMaterial({ color: 0x3050ff, metalness: 0.15, roughness: 0.4 }), // +Z  blue
+  new THREE.MeshStandardMaterial({ color: 0x1818aa, metalness: 0.15, roughness: 0.4 }), // -Z  dark blue
 ];
 const cube = new THREE.Mesh(geometry, boxMaterials);
+cube.castShadow = true;
+cube.receiveShadow = true;
 contentGroup.add(cube);
 
-scene.add(new THREE.GridHelper(6, 24, 0x444444, 0x222222));
+scene.add(new THREE.GridHelper(6, 24, 0x555555, 0x2a2a2a));
 scene.add(new THREE.AxesHelper(2));
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+/* Shadow-receiving ground plane */
+const groundGeo = new THREE.PlaneGeometry(12, 12);
+const groundMat = new THREE.ShadowMaterial({ opacity: 0.45 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.005;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* Hemisphere light for ambient sky/ground colour variation */
+const hemi = new THREE.HemisphereLight(0x6688cc, 0x443322, 0.7);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xfff0e0, 1.2);
 dir.position.set(5, 10, 7);
+dir.castShadow = true;
+dir.shadow.mapSize.width  = 2048;
+dir.shadow.mapSize.height = 2048;
+dir.shadow.camera.near = 0.5;
+dir.shadow.camera.far  = 30;
+dir.shadow.camera.left   = -4;
+dir.shadow.camera.right  =  4;
+dir.shadow.camera.top    =  4;
+dir.shadow.camera.bottom = -4;
+dir.shadow.bias = -0.0005;
+dir.shadow.radius = 3;
 scene.add(dir);
-const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+const fill = new THREE.DirectionalLight(0xc0d0ff, 0.5);
 fill.position.set(-3, -2, -5);
 scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.35);
+rim.position.set(-5, 3, 8);
+scene.add(rim);
+
+/* ---------- Procedural normal-map texture for surface detail ---------- */
+function createSubtleNormalMap(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  const d = img.data;
+  for (let i = 0; i < size * size; i++) {
+    /* Slight random perturbation around flat normal (128,128,255) */
+    const jitter = 6;
+    d[i * 4]     = 128 + (Math.random() - 0.5) * jitter; // R = X
+    d[i * 4 + 1] = 128 + (Math.random() - 0.5) * jitter; // G = Y
+    d[i * 4 + 2] = 255;                                   // B = Z
+    d[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  return tex;
+}
+const subtleNormal = createSubtleNormalMap(128);
 
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -400,32 +273,43 @@ window.addEventListener('resize', () => {
 /* ============================================
    STEP FILE LOADER  (occt-import-js, lazy)
    ============================================ */
-/* ---------- IndexedDB helpers for STEP file persistence ---------- */
-function openStepDB() {
+/* ---------- IndexedDB helpers for model persistence ---------- */
+function openModelDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('StepFileStore', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('files');
+    const req = indexedDB.open('StepFileStore', 2);
+    req.onupgradeneeded = (e) => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files');
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror   = () => reject(req.error);
   });
 }
-async function saveStepBytes(bytes) {
-  const db = await openStepDB();
+async function dbPut(key, value) {
+  const db = await openModelDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('files', 'readwrite');
-    tx.objectStore('files').put(bytes, 'current');
+    tx.objectStore('files').put(value, key);
     tx.oncomplete = resolve;
     tx.onerror    = () => reject(tx.error);
   });
 }
-async function loadStepBytes() {
-  const db = await openStepDB();
+async function dbGet(key) {
+  const db = await openModelDB();
   return new Promise((resolve, reject) => {
     const tx  = db.transaction('files', 'readonly');
-    const req = tx.objectStore('files').get('current');
+    const req = tx.objectStore('files').get(key);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror   = () => reject(req.error);
   });
+}
+/* Convenience wrappers */
+async function saveStepBytes(bytes) { await dbPut('current', bytes); await dbPut('modelType', 'step'); }
+async function loadStepBytes()      { return dbGet('current'); }
+async function saveObjData(objText, mtlText) {
+  await dbPut('objText', objText);
+  await dbPut('mtlText', mtlText);
+  await dbPut('modelType', 'obj');
 }
 
 let occt = null;
@@ -453,24 +337,16 @@ async function loadStepFromBytes(buffer, save) {
 
     const result = occt.ReadStepFile(buffer, null);
 
-    /* Clear previous model from content group */
-    while (contentGroup.children.length > 0) {
-      const child = contentGroup.children[0];
-      contentGroup.remove(child);
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-        else child.material.dispose();
-      }
-    }
+    clearContentGroup();
 
     /* Build meshes from STEP data */
     for (let i = 0; i < result.meshes.length; i++) {
       const md = result.meshes[i];
       const geo = new THREE.BufferGeometry();
 
+      const posArr = md.attributes.position.array;
       geo.setAttribute('position',
-        new THREE.Float32BufferAttribute(md.attributes.position.array, 3));
+        new THREE.Float32BufferAttribute(posArr, 3));
 
       if (md.attributes.normal) {
         geo.setAttribute('normal',
@@ -479,21 +355,68 @@ async function loadStepFromBytes(buffer, save) {
         geo.computeVertexNormals();
       }
 
-      geo.setIndex(new THREE.BufferAttribute(new Uint32Array(md.index.array), 1));
+      const indexArr = new Uint32Array(md.index.array);
+      geo.setIndex(new THREE.BufferAttribute(indexArr, 1));
 
-      let color = 0x888888;
+      /* --- Per-face vertex colours from brep_faces --- */
+      let hasPerFaceColor = false;
+      if (md.brep_faces && md.brep_faces.length > 0) {
+        const vertCount = posArr.length / 3;
+        const colBuf = new Float32Array(vertCount * 3);
+        /* Default: fill with mesh-level colour or neutral grey */
+        const fallback = md.color
+          ? new THREE.Color(md.color[0], md.color[1], md.color[2])
+          : new THREE.Color(0x99aacc);
+        for (let v = 0; v < vertCount; v++) {
+          colBuf[v * 3]     = fallback.r;
+          colBuf[v * 3 + 1] = fallback.g;
+          colBuf[v * 3 + 2] = fallback.b;
+        }
+
+        for (const face of md.brep_faces) {
+          if (!face.color) continue;
+          hasPerFaceColor = true;
+          const fc = new THREE.Color(face.color[0], face.color[1], face.color[2]);
+          /* Paint every vertex referenced by this face's triangles */
+          const triStart = face.first_tri_index;
+          const triEnd   = triStart + face.triangle_count;
+          for (let t = triStart; t < triEnd; t++) {
+            for (let k = 0; k < 3; k++) {
+              const vi = indexArr[t * 3 + k];
+              colBuf[vi * 3]     = fc.r;
+              colBuf[vi * 3 + 1] = fc.g;
+              colBuf[vi * 3 + 2] = fc.b;
+            }
+          }
+        }
+
+        if (hasPerFaceColor) {
+          geo.setAttribute('color', new THREE.Float32BufferAttribute(colBuf, 3));
+        }
+      }
+
+      /* Mesh-level fallback colour */
+      let meshColor;
       if (md.color) {
-        color = new THREE.Color(md.color[0], md.color[1], md.color[2]);
+        meshColor = new THREE.Color(md.color[0], md.color[1], md.color[2]);
+      } else {
+        meshColor = new THREE.Color(0x99aacc);
       }
 
       const mat = new THREE.MeshStandardMaterial({
-        color: color,
+        color: hasPerFaceColor ? 0xffffff : meshColor,
+        vertexColors: hasPerFaceColor,
         side: THREE.DoubleSide,
-        metalness: 0.3,
-        roughness: 0.6
+        metalness: 0.2,
+        roughness: 0.45,
+        normalMap: subtleNormal,
+        normalScale: new THREE.Vector2(0.3, 0.3)
       });
 
-      contentGroup.add(new THREE.Mesh(geo, mat));
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      contentGroup.add(mesh);
     }
 
     /* Center and scale to fit ~2 units */
@@ -517,20 +440,140 @@ async function loadStepFromBytes(buffer, save) {
   }
 }
 
-/* File input triggers */
+/* ============================================
+   SHARED HELPERS
+   ============================================ */
+function clearContentGroup() {
+  while (contentGroup.children.length > 0) {
+    const child = contentGroup.children[0];
+    contentGroup.remove(child);
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+      else child.material.dispose();
+    }
+  }
+}
+
+/* ============================================
+   OBJ FILE LOADER
+   ============================================ */
+async function loadObjFromText(text, mtlText, save) {
+  const loading = document.getElementById('loadingOverlay');
+  loading.style.display = 'flex';
+
+  try {
+    clearContentGroup();
+
+    const loader = new OBJLoader();
+
+    /* If an MTL was provided, parse it and attach materials */
+    if (mtlText) {
+      const mtlLoader = new MTLLoader();
+      const materials = mtlLoader.parse(mtlText, '');
+      materials.preload();
+      loader.setMaterials(materials);
+    }
+
+    const obj = loader.parse(text);
+
+    obj.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      /* Upgrade materials to MeshStandardMaterial, preserving colours */
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        for (let i = 0; i < mats.length; i++) {
+          const m = mats[i];
+          if (!m.isMeshStandardMaterial) {
+            const std = new THREE.MeshStandardMaterial({
+              color: m.color || 0x99aacc,
+              map: m.map || null,
+              side: THREE.DoubleSide,
+              metalness: 0.2,
+              roughness: 0.45,
+              normalMap: subtleNormal,
+              normalScale: new THREE.Vector2(0.3, 0.3)
+            });
+            if (m.vertexColors) std.vertexColors = true;
+            m.dispose();
+            mats[i] = std;
+          } else {
+            m.side = THREE.DoubleSide;
+            if (!m.normalMap) {
+              m.normalMap = subtleNormal;
+              m.normalScale = new THREE.Vector2(0.3, 0.3);
+            }
+          }
+        }
+        child.material = mats.length === 1 ? mats[0] : mats;
+      }
+
+      if (!child.geometry.attributes.normal) child.geometry.computeVertexNormals();
+    });
+
+    /* Re-parent meshes into contentGroup */
+    const meshes = [];
+    obj.traverse((c) => { if (c.isMesh) meshes.push(c); });
+    for (const m of meshes) contentGroup.add(m);
+
+    /* Center and scale to fit ~2 units */
+    const box3 = new THREE.Box3().setFromObject(contentGroup);
+    const center = box3.getCenter(new THREE.Vector3());
+    const size = box3.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const s = 2.0 / maxDim;
+
+    for (const child of contentGroup.children) {
+      child.position.sub(center);
+      child.scale.setScalar(s);
+    }
+
+    if (save) await saveObjData(text, mtlText);
+
+  } catch (err) {
+    alert('Failed to load OBJ file: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+/* ============================================
+   FILE INPUT — routes by extension
+   ============================================ */
 const fileInput = document.getElementById('fileInput');
+
 fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    const buffer = new Uint8Array(await file.arrayBuffer());
-    loadStepFromBytes(buffer, true);
+  const files = Array.from(e.target.files);
+  if (files.length === 0) { e.target.value = ''; return; }
+
+  const mtlFile  = files.find(f => /\.mtl$/i.test(f.name));
+  const objFile  = files.find(f => /\.obj$/i.test(f.name));
+  const stepFile = files.find(f => /\.(step|stp)$/i.test(f.name));
+
+  const mtlText = mtlFile ? await mtlFile.text() : null;
+
+  if (objFile) {
+    await loadObjFromText(await objFile.text(), mtlText, true);
+  } else if (stepFile) {
+    const buffer = new Uint8Array(await stepFile.arrayBuffer());
+    await loadStepFromBytes(buffer, true);
   }
   e.target.value = '';
 });
 
-/* Restore saved STEP file on load */
-loadStepBytes().then(bytes => {
-  if (bytes) loadStepFromBytes(bytes, false);
+/* Restore saved model on load */
+dbGet('modelType').then(async (type) => {
+  if (type === 'obj') {
+    const objText = await dbGet('objText');
+    const mtlText = await dbGet('mtlText');
+    if (objText) await loadObjFromText(objText, mtlText, false);
+  } else {
+    const bytes = await loadStepBytes();
+    if (bytes) await loadStepFromBytes(bytes, false);
+  }
 }).catch(() => {});
 
 document.getElementById('loadModelBtn').addEventListener('click', () => fileInput.click());
@@ -644,6 +687,7 @@ function showMainUI() {
   document.getElementById('serialConsole').style.display = 'flex';
   document.getElementById('graphPanel').style.display = 'flex';
   document.getElementById('recordPanel').style.display = 'block';
+  document.getElementById('lightPanel').style.display = 'block';
   document.getElementById('serialPortPanel').style.display = 'block';
 }
 
@@ -795,24 +839,30 @@ document.getElementById('clearConsoleBtn').addEventListener('click', () => {
    ============================================ */
 const modelOffset = new THREE.Vector3(0, 0, 0);
 
-function setupOffsetSlider(id, valId, axis) {
-  const slider = document.getElementById(id);
-  const valEl  = document.getElementById(valId);
+function setupOffsetControl(sliderId, inputId, axis) {
+  const slider = document.getElementById(sliderId);
+  const numInput = document.getElementById(inputId);
   slider.addEventListener('input', () => {
     const v = parseFloat(slider.value);
     modelOffset[axis] = v;
-    valEl.textContent = v.toFixed(2);
+    numInput.value = v.toFixed(2);
+  });
+  numInput.addEventListener('input', () => {
+    const v = parseFloat(numInput.value);
+    if (isNaN(v)) return;
+    modelOffset[axis] = v;
+    slider.value = Math.max(-10, Math.min(10, v));
   });
 }
-setupOffsetSlider('offX', 'offXVal', 'x');
-setupOffsetSlider('offY', 'offYVal', 'y');
-setupOffsetSlider('offZ', 'offZVal', 'z');
+setupOffsetControl('offX', 'offXVal', 'x');
+setupOffsetControl('offY', 'offYVal', 'y');
+setupOffsetControl('offZ', 'offZVal', 'z');
 
 document.getElementById('resetOffsetBtn').addEventListener('click', () => {
   modelOffset.set(0, 0, 0);
   for (const [id, valId] of [['offX','offXVal'],['offY','offYVal'],['offZ','offZVal']]) {
     document.getElementById(id).value = 0;
-    document.getElementById(valId).textContent = '0.00';
+    document.getElementById(valId).value = '0.00';
   }
 });
 
@@ -820,34 +870,123 @@ function applyOffsetToSliders() {
   const mapping = [['offX','offXVal','x'],['offY','offYVal','y'],['offZ','offZVal','z']];
   for (const [id, valId, axis] of mapping) {
     document.getElementById(id).value = modelOffset[axis];
-    document.getElementById(valId).textContent = modelOffset[axis].toFixed(2);
+    document.getElementById(valId).value = modelOffset[axis].toFixed(2);
   }
 }
 
-document.getElementById('autoCenterBtn').addEventListener('click', () => {
-  const box3 = new THREE.Box3().setFromObject(contentGroup);
-  if (box3.isEmpty()) return;
-  const center = box3.getCenter(new THREE.Vector3());
-  modelOffset.set(-center.x, -center.y, -center.z);
+/* ---------- Pick Center mode ---------- */
+let pickCenterMode = false;
+const pickCenterBtn = document.getElementById('pickCenterBtn');
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+function setPickMode(on) {
+  pickCenterMode = on;
+  renderer.domElement.style.cursor = on ? 'crosshair' : '';
+  pickCenterBtn.classList.toggle('pick-active', on);
+}
+
+pickCenterBtn.addEventListener('click', () => setPickMode(!pickCenterMode));
+
+renderer.domElement.addEventListener('click', (e) => {
+  if (!pickCenterMode) return;
+
+  /* Compute normalised device coordinates */
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointerNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  pointerNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(contentGroup.children, true);
+  if (hits.length === 0) return;
+
+  /* Convert hit point to contentGroup local space and negate */
+  const localPt = contentGroup.worldToLocal(hits[0].point.clone());
+  modelOffset.set(-localPt.x, -localPt.y, -localPt.z);
   applyOffsetToSliders();
+
+  setPickMode(false);
 });
 
 /* ============================================
-   YAW OFFSET CONTROL
+   ATTITUDE OFFSET CONTROLS
    ============================================ */
-let yawOffset = 0;
+let rollOffset = 0, pitchOffset = 0, yawOffset = 0;
 
-const yawOffSlider = document.getElementById('yawOff');
-const yawOffValEl  = document.getElementById('yawOffVal');
-yawOffSlider.addEventListener('input', () => {
-  yawOffset = parseFloat(yawOffSlider.value);
-  yawOffValEl.textContent = yawOffset.toFixed(1);
-});
+function setupAttOffsetControl(sliderId, valId, setter) {
+  const slider   = document.getElementById(sliderId);
+  const numInput = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    setter(v);
+    numInput.value = v.toFixed(1);
+  });
+  numInput.addEventListener('input', () => {
+    const v = parseFloat(numInput.value);
+    if (isNaN(v)) return;
+    setter(v);
+    slider.value = Math.max(-180, Math.min(180, v));
+  });
+}
+setupAttOffsetControl('rollOff',  'rollOffVal',  (v) => { rollOffset = v; });
+setupAttOffsetControl('pitchOff', 'pitchOffVal', (v) => { pitchOffset = v; });
+setupAttOffsetControl('yawOff',   'yawOffVal',   (v) => { yawOffset = v; });
 
 document.getElementById('resetYawOffsetBtn').addEventListener('click', () => {
-  yawOffset = 0;
-  yawOffSlider.value = 0;
-  yawOffValEl.textContent = '0.0';
+  rollOffset = 0; pitchOffset = 0; yawOffset = 0;
+  for (const [id, valId] of [['rollOff','rollOffVal'],['pitchOff','pitchOffVal'],['yawOff','yawOffVal']]) {
+    document.getElementById(id).value = 0;
+    document.getElementById(valId).value = '0.0';
+  }
+});
+
+/* ============================================
+   LIGHTING CONTROLS
+   ============================================ */
+const LIGHT_DEFAULTS = { ambient: 0.7, key: 1.2, fill: 0.5, rim: 0.35, exposure: 1.0 };
+const lightTargets = {
+  ambient:  (v) => { hemi.intensity = v; },
+  key:      (v) => { dir.intensity = v; },
+  fill:     (v) => { fill.intensity = v; },
+  rim:      (v) => { rim.intensity = v; },
+  exposure: (v) => { renderer.toneMappingExposure = v; }
+};
+
+function setupLightControl(sliderId, valId, apply) {
+  const slider   = document.getElementById(sliderId);
+  const numInput = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    apply(v);
+    numInput.value = v.toFixed(2);
+  });
+  numInput.addEventListener('input', () => {
+    const v = parseFloat(numInput.value);
+    if (isNaN(v)) return;
+    apply(v);
+    slider.value = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), v));
+  });
+}
+setupLightControl('ltAmbient',  'ltAmbientVal',  lightTargets.ambient);
+setupLightControl('ltKey',      'ltKeyVal',       lightTargets.key);
+setupLightControl('ltFill',     'ltFillVal',      lightTargets.fill);
+setupLightControl('ltRim',      'ltRimVal',       lightTargets.rim);
+setupLightControl('ltExposure', 'ltExposureVal',  lightTargets.exposure);
+
+document.getElementById('resetLightBtn').addEventListener('click', () => {
+  const map = [
+    ['ltAmbient','ltAmbientVal','ambient'],
+    ['ltKey','ltKeyVal','key'],
+    ['ltFill','ltFillVal','fill'],
+    ['ltRim','ltRimVal','rim'],
+    ['ltExposure','ltExposureVal','exposure']
+  ];
+  for (const [sId, vId, name] of map) {
+    const d = LIGHT_DEFAULTS[name];
+    lightTargets[name](d);
+    document.getElementById(sId).value = d;
+    document.getElementById(vId).value = d.toFixed(2);
+  }
 });
 
 /* ============================================
@@ -1034,14 +1173,27 @@ function drawGraph() {
    ANIMATION LOOP
    ============================================ */
 const DEG2RAD = Math.PI / 180;
+const attEuler    = new THREE.Euler(0, 0, 0, 'YZX');
+const attQ        = new THREE.Quaternion();
+const offsetEuler = new THREE.Euler(0, 0, 0, 'YZX');
+const offsetQ     = new THREE.Quaternion();
 
 function animate() {
   requestAnimationFrame(animate);
 
   controls.update();
   contentGroup.position.copy(modelOffset);
-  rotationGroup.rotation.order = 'YZX';
-  rotationGroup.rotation.set(roll * DEG2RAD, (yaw - yawOffset) * DEG2RAD, -pitch * DEG2RAD);
+
+  /* Attitude quaternion from serial data */
+  attEuler.set(roll * DEG2RAD, yaw * DEG2RAD, -pitch * DEG2RAD);
+  attQ.setFromEuler(attEuler);
+
+  /* Model rotational offset (pre-rotation applied to the model) */
+  offsetEuler.set(rollOffset * DEG2RAD, yawOffset * DEG2RAD, -pitchOffset * DEG2RAD);
+  offsetQ.setFromEuler(offsetEuler);
+
+  /* Attitude first, then offset rotates the model within that frame */
+  rotationGroup.quaternion.copy(attQ).multiply(offsetQ);
 
   document.getElementById('rollVal').textContent  = roll.toFixed(2).padStart(7);
   document.getElementById('pitchVal').textContent = pitch.toFixed(2).padStart(7);
