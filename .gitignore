@@ -1,0 +1,5 @@
+build/
+dist/
+__pycache__/
+*.pyc
+rocket_physics_defaults.json
