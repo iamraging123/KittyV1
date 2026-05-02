@@ -30,6 +30,10 @@
     <div class="hud-item"><span class="label">Pitch</span><br><span class="val-pitch" id="pitchVal">0.00</span>&deg;</div>
     <div class="hud-item"><span class="label">Yaw</span><br><span class="val-yaw" id="yawVal">0.00</span>&deg;</div>
   </div>
+  <div class="hud-row hud-row-alt">
+    <div class="hud-item"><span class="label">Altitude</span><br><span class="val-alt" id="altVal">0.00</span> m</div>
+    <div class="hud-item"><span class="label">V<sub>z</sub></span><br><span class="val-vz" id="vzVal">0.00</span> m/s</div>
+  </div>
 </div>
 
 <div id="loadingOverlay">Loading model...</div>
@@ -44,6 +48,15 @@
     </div>
   </div>
   <canvas id="graphCanvas"></canvas>
+</div>
+
+<div id="altGraphPanel">
+  <div class="graph-header">
+    <div class="graph-legend">
+      <span style="color:#d4a15a;">Altitude (m)</span>
+    </div>
+  </div>
+  <canvas id="altGraphCanvas"></canvas>
 </div>
 
 <div id="serialConsole">
@@ -80,6 +93,7 @@
     <label><input type="checkbox" id="recRoll" checked> <span style="color:#c27c6e;">Roll</span></label>
     <label><input type="checkbox" id="recPitch" checked> <span style="color:#7aab85;">Pitch</span></label>
     <label><input type="checkbox" id="recYaw" checked> <span style="color:#8a9bae;">Yaw</span></label>
+    <label><input type="checkbox" id="recAlt" checked> <span style="color:#d4a15a;">Alt</span></label>
   </div>
   <div class="rec-row">
     <select id="recDuration">
@@ -152,8 +166,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
 
-/* ---------- shared attitude state ---------- */
+/* ---------- shared attitude + altitude state ---------- */
 let roll = 0, pitch = 0, yaw = 0;
+let altitude = 0, verticalVelocity = 0;
 
 /* ============================================
    THREE.JS SCENE
@@ -686,6 +701,7 @@ function showMainUI() {
   document.getElementById('yawOffsetPanel').style.display = 'block';
   document.getElementById('serialConsole').style.display = 'flex';
   document.getElementById('graphPanel').style.display = 'flex';
+  document.getElementById('altGraphPanel').style.display = 'flex';
   document.getElementById('recordPanel').style.display = 'block';
   document.getElementById('lightPanel').style.display = 'block';
   document.getElementById('serialPortPanel').style.display = 'block';
@@ -727,12 +743,19 @@ async function readSerialLoop(port) {
           const trimmed = ln.trim();
           if (trimmed.length > 0) appendConsoleLine(trimmed);
           const parts = trimmed.split(/\s+/);
-          if (parts.length !== 3) continue;
+          /* Accept "roll pitch yaw" (3) or "roll pitch yaw alt vz" (5) */
+          if (parts.length !== 3 && parts.length !== 5) continue;
           const r = parseFloat(parts[0]);
           const p = parseFloat(parts[1]);
           const y = parseFloat(parts[2]);
           if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
           roll = r; pitch = p; yaw = y;
+          if (parts.length === 5) {
+            const a  = parseFloat(parts[3]);
+            const vz = parseFloat(parts[4]);
+            if (!isNaN(a))  altitude = a;
+            if (!isNaN(vz)) verticalVelocity = vz;
+          }
         }
       }
     } catch (readErr) {
@@ -1033,7 +1056,7 @@ function recordSample() {
   if (now - lastRecordTime < RECORD_INTERVAL) return;
   lastRecordTime = now;
   const t = ((now - recordStartTime) / 1000).toFixed(3);
-  recordData.push({ t, roll, pitch, yaw });
+  recordData.push({ t, roll, pitch, yaw, altitude });
   const dur = parseInt(recDurationEl.value);
   if (dur > 0) {
     const elapsed = (now - recordStartTime) / 1000;
@@ -1048,11 +1071,13 @@ recExportBtn.addEventListener('click', () => {
   const wantRoll  = document.getElementById('recRoll').checked;
   const wantPitch = document.getElementById('recPitch').checked;
   const wantYaw   = document.getElementById('recYaw').checked;
+  const wantAlt   = document.getElementById('recAlt').checked;
 
   let header = 'Time(s)';
   if (wantRoll)  header += ',Roll';
   if (wantPitch) header += ',Pitch';
   if (wantYaw)   header += ',Yaw';
+  if (wantAlt)   header += ',Altitude_m';
 
   const lines = [header];
   for (const d of recordData) {
@@ -1060,6 +1085,7 @@ recExportBtn.addEventListener('click', () => {
     if (wantRoll)  row += ',' + d.roll.toFixed(2);
     if (wantPitch) row += ',' + d.pitch.toFixed(2);
     if (wantYaw)   row += ',' + d.yaw.toFixed(2);
+    if (wantAlt)   row += ',' + d.altitude.toFixed(2);
     lines.push(row);
   }
 
@@ -1088,6 +1114,9 @@ const graphCanvas = document.getElementById('graphCanvas');
 const graphCtx = graphCanvas.getContext('2d');
 const GRAPH_POINTS = 200;
 const graphData = { roll: [], pitch: [], yaw: [] };
+const altGraphData = [];
+const altGraphCanvas = document.getElementById('altGraphCanvas');
+const altGraphCtx = altGraphCanvas.getContext('2d');
 
 function drawGraph() {
   const rect = graphCanvas.parentElement.getBoundingClientRect();
@@ -1169,6 +1198,76 @@ function drawGraph() {
   }
 }
 
+function drawAltGraph() {
+  const rect = altGraphCanvas.parentElement.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height - altGraphCanvas.offsetTop;
+  if (altGraphCanvas.width !== w * devicePixelRatio || altGraphCanvas.height !== h * devicePixelRatio) {
+    altGraphCanvas.width  = w * devicePixelRatio;
+    altGraphCanvas.height = h * devicePixelRatio;
+    altGraphCanvas.style.width  = w + 'px';
+    altGraphCanvas.style.height = h + 'px';
+  }
+
+  const ctx = altGraphCtx;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  altGraphData.push(altitude);
+  if (altGraphData.length > GRAPH_POINTS) altGraphData.shift();
+
+  let min = Infinity, max = -Infinity;
+  for (const v of altGraphData) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  /* Floor the range so a flat signal on the pad still shows something sensible */
+  if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+  if (max - min < 1) { const mid = (max + min) * 0.5; min = mid - 0.5; max = mid + 0.5; }
+  const pad = (max - min) * 0.1;
+  min -= pad; max += pad;
+
+  /* Grid */
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 0.5;
+  const gridSteps = 5;
+  for (let i = 0; i <= gridSteps; i++) {
+    const y = (i / gridSteps) * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  /* Zero line */
+  if (min < 0 && max > 0) {
+    const zeroY = h - ((0 - min) / (max - min)) * h;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY); ctx.stroke();
+  }
+
+  /* Y-axis labels */
+  ctx.fillStyle = '#666';
+  ctx.font = '10px Consolas, monospace';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = max - (i / gridSteps) * (max - min);
+    const y = (i / gridSteps) * h;
+    ctx.fillText(val.toFixed(1) + ' m', 2, y);
+  }
+
+  /* Altitude line */
+  if (altGraphData.length >= 2) {
+    ctx.strokeStyle = '#d4a15a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < altGraphData.length; i++) {
+      const x = (i / (GRAPH_POINTS - 1)) * w;
+      const y = h - ((altGraphData[i] - min) / (max - min)) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
 /* ============================================
    ANIMATION LOOP
    ============================================ */
@@ -1198,9 +1297,12 @@ function animate() {
   document.getElementById('rollVal').textContent  = roll.toFixed(2).padStart(7);
   document.getElementById('pitchVal').textContent = pitch.toFixed(2).padStart(7);
   document.getElementById('yawVal').textContent   = yaw.toFixed(2).padStart(7);
+  document.getElementById('altVal').textContent   = altitude.toFixed(2).padStart(7);
+  document.getElementById('vzVal').textContent    = verticalVelocity.toFixed(2).padStart(7);
 
   recordSample();
   drawGraph();
+  drawAltGraph();
   renderer.render(scene, camera);
 }
 

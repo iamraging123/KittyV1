@@ -14,6 +14,7 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "ICM42670P.h"
+#include "BME280I2C.h"
 #include "config.h"
 
 /****************************************************
@@ -102,9 +103,11 @@ float mag_z_uT           = 0.0f;    // Z-axis magnetic field (uT)
 float mag_declination_deg = 2.5f;    // Local magnetic declination (deg)
 
 /* --- Barometer --- */
-float baro_pressure_pa = 0.0f;      // Atmospheric pressure (Pa)
-float baro_temp_c      = 0.0f;      // Barometer temperature (C)
-float baro_altitude_m  = 0.0f;      // Pressure-derived altitude (m)
+BME280I2C bme;                       // BME280 driver instance (I2C)
+float baro_pressure_pa     = 0.0f;   // Atmospheric pressure (Pa)
+float baro_temp_c          = 0.0f;   // Barometer temperature (C)
+float baro_humidity_percent = 0.0f;  // Barometer humidity (%RH)
+float baro_altitude_m      = 0.0f;   // Pressure-derived altitude (m)
 
 /* --- GPS --- */
 double  gps_lat_deg  = 0.0;         // Raw GPS latitude (deg)
@@ -170,3 +173,23 @@ float mahony_yaw   = 0.0f;          // Yaw estimate (deg)
 /* Tunable filter gains */
 const float MAHONY_KP     = 2.0f;   // Proportional accel correction (higher = more accel trust)
 const float R_ACCEL_SCALE = 50.0f;  // Adaptive scaling — gain reduced when |accel| != 1g
+
+/****************************************************
+ * =========== ALTITUDE KALMAN FILTER ==============
+ ****************************************************/
+
+float P0_pa          = 101325.0f;   // Pad reference pressure — overwritten at KF init
+float a_z_world_mps2 = 0.0f;        // World-frame vertical accel (m/s^2, gravity-removed)
+
+/* Covariance: large initial position/velocity uncertainty */
+float altitude_kf_P00 = 100.0f;
+float altitude_kf_P01 = 0.0f;
+float altitude_kf_P11 = 10.0f;
+
+/* Tuning — retune after first flight with logged data */
+float altitude_kf_sigma_a = 0.5f;   // Accel process-noise std dev (m/s^2)
+float altitude_kf_R_baro  = 1.0f;   // BME280 ~1 m std dev => 1 m^2
+float altitude_kf_R_gps   = 25.0f;  // GPS-Z ~5 m std dev  => 25 m^2
+
+bool          altitude_kf_initialized = false;
+unsigned long baro_last_read_us       = 0;

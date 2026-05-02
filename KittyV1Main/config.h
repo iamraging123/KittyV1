@@ -17,14 +17,11 @@
 
 #include "Arduino.h"
 #include "ICM42670P.h"
+#include "BME280I2C.h"
 
 /****************************************************
  * ===================== CONFIG =====================
  ****************************************************/
-
-/* ---------- Debug ---------- */
-#define START_ONLY false           // true = halt after setup (board check only)
-
 /* ---------- I2C ---------- */
 #define PIN_I2C_SDA PB7           // I2C data line
 #define PIN_I2C_SCL PB6           // I2C clock line
@@ -207,10 +204,12 @@ extern float mag_declination_deg;     // Local magnetic declination correction (
  * BAROMETER
  * ================================================== */
 
+extern BME280I2C bme;                 // BME280 driver instance (I2C)
+
 /* Pressure & temperature */
 extern float baro_pressure_pa;        // Atmospheric pressure (Pa)
 extern float baro_temp_c;             // Barometer temperature (C)
-
+extern float baro_humidity_percent;     // Barometer humidity (%RH)
 /* Altitude */
 extern float baro_altitude_m;         // Pressure-derived altitude AGL (m)
 
@@ -295,5 +294,36 @@ extern float mahony_yaw;              // Yaw estimate (deg, drifts without magne
 /* Tunable filter gains */
 extern const float MAHONY_KP;         // Proportional accel correction gain (higher = more accel trust)
 extern const float R_ACCEL_SCALE;     // Adaptive scaling — gain is reduced when |accel| deviates from 1g
+
+/****************************************************
+ * =========== ALTITUDE KALMAN FILTER ==============
+ * 1D linear KF.
+ *   state  x = [altitude_m, vertical_velocity_mps]^T
+ *   input  u = world-frame vertical accel (m/s^2, gravity removed)
+ *   meas   z = direct altitude (baro now, GPS later)
+ * Measurement matrix H = [1, 0] for both sensors, so
+ * AltitudeKFUpdate(z, R) is generic — add GPS by calling
+ * it with (gps_alt_m, altitude_kf_R_gps). No state-size
+ * change needed.
+ ****************************************************/
+
+#define GRAVITY_MPS2 9.80665f              // Standard gravity
+#define BARO_UPDATE_INTERVAL_US 20000UL    // 50 Hz baro correction rate
+
+extern float P0_pa;                        // Pad reference pressure (Pa), set at KF init
+extern float a_z_world_mps2;               // World-frame vertical accel (m/s^2, gravity-removed)
+
+/* Covariance P (2x2 symmetric; store 3 unique elements) */
+extern float altitude_kf_P00;              // var(altitude)       [m^2]
+extern float altitude_kf_P01;              // cov(altitude, vel)  [m*m/s]
+extern float altitude_kf_P11;              // var(velocity)       [(m/s)^2]
+
+/* Tuning */
+extern float altitude_kf_sigma_a;          // Accel process-noise std dev (m/s^2)
+extern float altitude_kf_R_baro;           // Baro altitude variance (m^2)
+extern float altitude_kf_R_gps;            // GPS altitude variance (m^2) — for future use
+
+extern bool  altitude_kf_initialized;      // True after pad P0 captured
+extern unsigned long baro_last_read_us;    // Timestamp of last baro update (us)
 
 #endif // CONFIG_H
