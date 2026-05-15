@@ -45,7 +45,7 @@ int MainIMUSetup() {
 }
 
 
-void setup() {s
+void setup() {
 
   Serial.begin(115200);
   Serial.println("Power on succesfull");
@@ -129,6 +129,8 @@ void loop() {
   }
 
 }
+
+
 
 void IMUMahony(
     float accelX, float accelY, float accelZ,
