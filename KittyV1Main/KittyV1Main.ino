@@ -21,9 +21,8 @@
 
 #include "config.h"
 
-/****************************************************
- * ===================== SETUP ======================
- ****************************************************/
+//setup
+
 int MainIMUSetup() {
 
   while(!Serial) {}
@@ -45,82 +44,8 @@ int MainIMUSetup() {
   }
 }
 
-int BaroSetup() {
-  if (!bme.begin()) {
-    return -1;
-  }
-  return 0;
-}
 
-void MainIMUCalibration() {
-
-  Serial.println("Calibrating Main IMU gyroscope biases, please wait...");
-
-  for(int current_sample = 0; current_sample < calibration_samples; current_sample++) {
-    inv_imu_sensor_event_t MainIMU_event;
-    MainIMU.getDataFromRegisters(MainIMU_event);
-
-    main_gyro_x_bias += MainIMU_event.gyro[0] / main_gyro_sensitivity_dps_per_lsb;
-    main_gyro_y_bias += MainIMU_event.gyro[1] / main_gyro_sensitivity_dps_per_lsb;
-    main_gyro_z_bias += MainIMU_event.gyro[2] / main_gyro_sensitivity_dps_per_lsb;
-
-    delay(10);
-  }
-
-  main_gyro_x_bias /= calibration_samples;
-  main_gyro_y_bias /= calibration_samples;
-  main_gyro_z_bias /= calibration_samples;
-  
-  Serial.println("Main IMU gyroscope biases calibrated:");
-  Serial.print("X-axis gyro bias: ");
-  Serial.print(main_gyro_x_bias, 8);
-  Serial.print(" deg/s | Y-axis gyro bias: ");
-  Serial.print(main_gyro_y_bias, 8);
-  Serial.print(" deg/s | Z-axis gyro bias: ");
-  Serial.print(main_gyro_z_bias, 8);
-  Serial.println(" deg/s");
-}
-
-bool SensorCheck(int MainIMUStatus2, int SensorLowIMUStatus, int SensorHighIMUStatus, int GPSStatus, int BaroStatus, int LoRaStatus, int SDStatus, int PCA9685Status) {
-    if (MainIMUStatus2 != 0) {
-      Serial.println("Main IMU initialization failed!");
-      return false;
-    }
-    if (SensorLowIMUStatus != 0) {
-      Serial.println("Sensor Low IMU initialization failed!");
-      return false;
-    }
-    if (SensorHighIMUStatus != 0) {
-      Serial.println("Sensor High IMU initialization failed!");
-      return false;
-    }
-    if (GPSStatus != 0) {
-      Serial.println("GPS initialization failed!");
-      return false;
-    }
-    if (BaroStatus != 0) {
-      Serial.println("Barometer initialization failed!");
-      return false;
-    }
-    if (LoRaStatus != 0) {
-      Serial.println("LoRa initialization failed!");
-      return false;
-    }
-    if (SDStatus != 0) {
-      Serial.println("SD Card initialization failed!");
-      return false;
-    }
-    if (PCA9685Status != 0) {
-      Serial.println("PCA9685 initialization failed!");
-      return false;
-  }
-
-  Serial.println("All sensors connected");
-  return true;
-
-}
-
-void setup() {
+void setup() {s
 
   Serial.begin(115200);
   Serial.println("Power on succesfull");
@@ -136,9 +61,9 @@ void setup() {
   Serial.println("I2C Initialized");
   delay(200);
 
-  //check status of all sensors and throw error if any failed
+  //check status of all sensors and throw error if any failed <- pls add at some point!
   MainIMUSetup();
-  //SensorCheck(MainIMUSetup(), 0, 0, 0, 0, 0, 0, 0);
+
 
   Serial.println("running sensor calibrations...");
   delay(100);
@@ -155,9 +80,7 @@ void setup() {
   lastLoopTime = micros();
 }
 
-/****************************************************
- * ===================== LOOP =======================
- ****************************************************/
+//loop
 
 void loop() {
 
@@ -169,13 +92,11 @@ void loop() {
   IMUread();
   IMUMahony(main_accel_x_g, main_accel_y_g, main_accel_z_g, main_gyro_x_dps, main_gyro_y_dps, main_gyro_z_dps, dt);
 
-  /* ---------- Altitude KF ---------- */
+
   if (altitude_kf_initialized) {
-    /* Predict every loop using world-frame vertical accel from current attitude. */
     a_z_world_mps2 = BodyAccelToWorldVerticalMps2();
     AltitudeKFPredict(a_z_world_mps2, dt);
 
-    /* Correct with baro at BARO_UPDATE_INTERVAL_US cadence (BME280 can't keep up with 250 Hz). */
     if (loopStart - baro_last_read_us >= BARO_UPDATE_INTERVAL_US) {
       BaroRead();
       if (!isnan(baro_pressure_pa) && baro_pressure_pa > 10000.0f) {
@@ -201,16 +122,13 @@ void loop() {
   loopCounter++;
 
 
-  //based on dt wait CONTROL_LOOP_PERIOD_US
+  //based on dt calc wait CONTROL_LOOP_PERIOD_US
   unsigned long elapsed = micros() - loopStart;
   if (elapsed < CONTROL_LOOP_PERIOD_US) {
     delayMicroseconds(CONTROL_LOOP_PERIOD_US - elapsed);
   }
 
 }
-
-
-
 
 void IMUMahony(
     float accelX, float accelY, float accelZ,
@@ -227,7 +145,7 @@ void IMUMahony(
   float accel_mag = sqrtf(accelX * accelX + accelY * accelY + accelZ * accelZ);
 
   if (accel_mag > 0.01f) {
-    /* Normalize measured accel to unit gravity direction */
+    
     float inv_mag = 1.0f / accel_mag;
     float ax = accelX * inv_mag;
     float ay = accelY * inv_mag;
@@ -268,13 +186,17 @@ void IMUMahony(
                         1.0f - 2.0f * (q_x * q_x + q_y * q_y)) * (180.0f / PI);
 
   float sinp   = 2.0f * (q_w * q_y - q_z * q_x);
-  if (sinp >  1.0f) sinp =  1.0f;      /* clamp to avoid NaN from float rounding */
+  if (sinp >  1.0f) sinp =  1.0f;      
   if (sinp < -1.0f) sinp = -1.0f;
   mahony_pitch = asinf(sinp) * (180.0f / PI);
 
   mahony_yaw   = atan2f(2.0f * (q_w * q_z + q_x * q_y),
                         1.0f - 2.0f * (q_y * q_y + q_z * q_z)) * (180.0f / PI);
 }
+
+
+
+//sensor functions
 
 void IMUread() {
 
@@ -308,6 +230,43 @@ void BaroRead() {
   baro_humidity_percent = hum;
 }
 
+
+// calc
+int BaroSetup() {
+  if (!bme.begin()) {
+    return -1;
+  }
+  return 0;
+}
+
+void MainIMUCalibration() {
+
+  Serial.println("Calibrating Main IMU gyroscope biases, please wait...");
+
+  for(int current_sample = 0; current_sample < calibration_samples; current_sample++) {
+    inv_imu_sensor_event_t MainIMU_event;
+    MainIMU.getDataFromRegisters(MainIMU_event);
+
+    main_gyro_x_bias += MainIMU_event.gyro[0] / main_gyro_sensitivity_dps_per_lsb;
+    main_gyro_y_bias += MainIMU_event.gyro[1] / main_gyro_sensitivity_dps_per_lsb;
+    main_gyro_z_bias += MainIMU_event.gyro[2] / main_gyro_sensitivity_dps_per_lsb;
+
+    delay(10);
+  }
+
+  main_gyro_x_bias /= calibration_samples;
+  main_gyro_y_bias /= calibration_samples;
+  main_gyro_z_bias /= calibration_samples;
+  
+  Serial.println("Main IMU gyroscope biases calibrated:");
+  Serial.print("X-axis gyro bias: ");
+  Serial.print(main_gyro_x_bias, 8);
+  Serial.print(" deg/s | Y-axis gyro bias: ");
+  Serial.print(main_gyro_y_bias, 8);
+  Serial.print(" deg/s | Z-axis gyro bias: ");
+  Serial.print(main_gyro_z_bias, 8);
+  Serial.println(" deg/s");
+}
 
 float PressureToAltitude(float P_pa, float P0_ref_pa) {
   return 44330.0f * (1.0f - powf(P_pa / P0_ref_pa, 0.190263f));
