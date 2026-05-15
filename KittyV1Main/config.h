@@ -78,7 +78,8 @@ extern unsigned long lastLoopTime;     // Timestamp of previous loop start (us)
 extern float dt;                       // Measured delta-time between loops (s)
 
 /* ---------- IMU Calibration ---------- */
-extern float calibration_samples;      // Number of samples for gyro bias calibration
+extern float calibration_samples_IMU;      // Number of samples for gyro bias calibration
+extern float calibration_samples_Baro;     // Number of samples for barometer bias calibration
 
 /* ---------- Serial Print Decimation ---------- */
 #define SERIAL_PRINT_DIVIDER 3        // Print every Nth loop iteration
