@@ -37,7 +37,7 @@ void setup() {
   MainIMUCalibration();
 
   // Barometer setup
-  Serial.println("Initializing the barometer")
+  Serial.println("Initializing the barometer");
   if (BaroSetup() != 0) {
     Serial.println("Barometer init failed.");
   } else {

@@ -15,6 +15,9 @@
  * Actual variable storage lives in globals.cpp.
  ****************************************************/
 
+//this file is claude generated, helps keep my vars organized!
+
+
 #include "Arduino.h"
 #include "ICM42670P.h"
 #include "BME280I2C.h"
