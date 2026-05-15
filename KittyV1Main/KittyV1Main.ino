@@ -31,11 +31,17 @@ void setup() {
 
   // IMU setup and calibration
   Serial.println("starting IMU calibration");
+
   MainIMUSetup();
+  if (MainIMUSetup() != 0) {
+    Serial.print("IMU setup failed");
+  }
+
   Serial.println("running IMU sensor calibration DONT MOVE...");
   delay(100);
   MainIMUCalibration();
 
+  
   // Barometer setup
   Serial.println("Initializing the barometer");
   if (BaroSetup() != 0) {
