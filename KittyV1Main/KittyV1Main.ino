@@ -161,7 +161,7 @@ void setup() {
 
 void loop() {
 
-  /* ---------- dt calculation ---------- */
+  //dt calc make loop same
   unsigned long loopStart = micros();
   dt = (loopStart - lastLoopTime) * 1e-6f;
   lastLoopTime = loopStart;
@@ -185,15 +185,9 @@ void loop() {
       baro_last_read_us = loopStart;
     }
 
-    /* FUTURE — when GPS is wired up, call on each fresh fix:
-       if (gps_new_sample && gps_fix_type >= 3) {
-         AltitudeKFUpdate(gps_alt_m, altitude_kf_R_gps);
-       }
-    */
   }
 
   if (loopCounter % SERIAL_PRINT_DIVIDER == 0) {
-    /* Format: roll pitch yaw altitude_m vertical_velocity_mps */
     Serial.print(mahony_roll, 2);
     Serial.print(' ');
     Serial.print(mahony_pitch, 2);
@@ -207,7 +201,7 @@ void loop() {
   loopCounter++;
 
 
-
+  //based on dt wait CONTROL_LOOP_PERIOD_US
   unsigned long elapsed = micros() - loopStart;
   if (elapsed < CONTROL_LOOP_PERIOD_US) {
     delayMicroseconds(CONTROL_LOOP_PERIOD_US - elapsed);
@@ -223,12 +217,13 @@ void IMUMahony(
     float gyroX,  float gyroY,  float gyroZ,
     float dt
 ) {
-  /* ---- Bias-corrected gyro rates (deg/s → rad/s) ---- */
+
+  // bias fix thingy
   float gx = (gyroX - main_gyro_x_bias) * (PI / 180.0f);
   float gy = (gyroY - main_gyro_y_bias) * (PI / 180.0f);
   float gz = (gyroZ - main_gyro_z_bias) * (PI / 180.0f);
 
-  /* ---- ACCEL CORRECTION (Mahony proportional) ---- */
+  //total force accel
   float accel_mag = sqrtf(accelX * accelX + accelY * accelY + accelZ * accelZ);
 
   if (accel_mag > 0.01f) {
@@ -238,20 +233,15 @@ void IMUMahony(
     float ay = accelY * inv_mag;
     float az = accelZ * inv_mag;
 
-    /* Estimated gravity direction in body frame from quaternion.
-       This is the third row of the body→world rotation matrix,
-       giving "world Z (up)" expressed in body coordinates. */
     float vx = 2.0f * (q_x * q_z - q_w * q_y);
     float vy = 2.0f * (q_w * q_x + q_y * q_z);
     float vz = q_w * q_w - q_x * q_x - q_y * q_y + q_z * q_z;
 
-    /* Error = cross(measured, estimated) — the rotation needed to
-       align the quaternion's gravity prediction with the real accel */
+
     float ex = ay * vz - az * vy;
     float ey = az * vx - ax * vz;
     float ez = ax * vy - ay * vx;
 
-    /* Adaptive gain: full correction near 1g, nearly zero during thrust */
     float accel_dev = fabsf(accel_mag - 1.0f);
     float Kp = MAHONY_KP / (1.0f + accel_dev * R_ACCEL_SCALE);
 
@@ -260,7 +250,6 @@ void IMUMahony(
     gz += Kp * ez;
   }
 
-  /* ---- QUATERNION INTEGRATION (first-order) ---- */
   float halfdt = 0.5f * dt;
   float qw = q_w, qx = q_x, qy = q_y, qz = q_z;
 
@@ -269,14 +258,12 @@ void IMUMahony(
   q_y += ( qw * gy - qx * gz + qz * gx) * halfdt;
   q_z += ( qw * gz + qx * gy - qy * gx) * halfdt;
 
-  /* Normalize to unit quaternion */
   float inv_norm = 1.0f / sqrtf(q_w * q_w + q_x * q_x + q_y * q_y + q_z * q_z);
   q_w *= inv_norm;
   q_x *= inv_norm;
   q_y *= inv_norm;
   q_z *= inv_norm;
 
-  /* ---- EXTRACT EULER ANGLES (degrees, for telemetry/display) ---- */
   mahony_roll  = atan2f(2.0f * (q_w * q_x + q_y * q_z),
                         1.0f - 2.0f * (q_x * q_x + q_y * q_y)) * (180.0f / PI);
 
@@ -321,20 +308,11 @@ void BaroRead() {
   baro_humidity_percent = hum;
 }
 
-/****************************************************
- * ========= ALTITUDE KALMAN FILTER (1D) ============
- * State x = [altitude_m, vertical_velocity_mps]^T
- * Both baro and GPS feed AltitudeKFUpdate(z, R) with
- * the same H = [1, 0] measurement model.
- ****************************************************/
 
-/* Inverse barometric formula — altitude AGL relative to pad pressure P0. */
 float PressureToAltitude(float P_pa, float P0_ref_pa) {
   return 44330.0f * (1.0f - powf(P_pa / P0_ref_pa, 0.190263f));
 }
 
-/* Project body-frame accel onto world-up, subtract 1 g, return m/s^2.
-   The (vx,vy,vz) triple is world-up expressed in body frame — same as in Mahony. */
 float BodyAccelToWorldVerticalMps2() {
   float vx = 2.0f * (q_x * q_z - q_w * q_y);
   float vy = 2.0f * (q_w * q_x + q_y * q_z);
@@ -344,7 +322,6 @@ float BodyAccelToWorldVerticalMps2() {
   return (a_up_g - 1.0f) * GRAVITY_MPS2;
 }
 
-/* Capture pad pressure and zero the state. Call once on the pad when armed. */
 void AltitudeKFInit(int n_samples) {
   float pressure_sum = 0.0f;
   int   got = 0;
@@ -373,7 +350,6 @@ void AltitudeKFInit(int n_samples) {
   Serial.println(" Pa");
 }
 
-/* Propagate state by dt with accel input u. Q = B*sigma_a^2*B^T, B=[0.5*dt^2, dt]^T. */
 void AltitudeKFPredict(float u_mps2, float dt) {
   altitude_m            += vertical_velocity_mps * dt + 0.5f * u_mps2 * dt * dt;
   vertical_velocity_mps += u_mps2 * dt;
@@ -383,7 +359,6 @@ void AltitudeKFPredict(float u_mps2, float dt) {
   float dt4 = dt2 * dt2;
   float sa2 = altitude_kf_sigma_a * altitude_kf_sigma_a;
 
-  /* P = F*P*F^T + Q with F=[[1,dt],[0,1]] */
   float P00 = altitude_kf_P00 + 2.0f * dt * altitude_kf_P01 + dt2 * altitude_kf_P11 + 0.25f * dt4 * sa2;
   float P01 = altitude_kf_P01 + dt * altitude_kf_P11 + 0.5f * dt3 * sa2;
   float P11 = altitude_kf_P11 + dt2 * sa2;
@@ -393,7 +368,6 @@ void AltitudeKFPredict(float u_mps2, float dt) {
   altitude_kf_P11 = P11;
 }
 
-/* Scalar altitude measurement update. Generic — used by baro now, GPS later. */
 void AltitudeKFUpdate(float z_meas_m, float R_meas) {
 
   float y = z_meas_m - altitude_m;
