@@ -11,6 +11,8 @@
  * compiles it automatically and links it in.
  ****************************************************/
 
+//this file is claude generated, helps keep my vars organized!
+
 #include "Arduino.h"
 #include "Wire.h"
 #include "ICM42670P.h"
@@ -21,7 +23,8 @@
  * ============ CONTROL LOOP TIMING ================
  ****************************************************/
 
-float calibration_samples = 100;      // Number of samples for gyro bias calibration
+float calibration_samples_IMU = 100;      // Number of samples for gyro bias calibration
+float calibration_samples_Baro = 50;       // Number of samples for barometer reference pressure calibration
 
 unsigned long nextLoopTime = 0;       // Scheduled start of next loop iteration (us)
 unsigned long lastLoopTime = 0;       // Timestamp of previous loop start (us)
