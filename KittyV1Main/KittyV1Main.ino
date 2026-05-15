@@ -23,27 +23,6 @@
 
 //setup
 
-int MainIMUSetup() {
-
-  while(!Serial) {}
-
-  int MainIMUStatus = MainIMU.begin();
-
-  if (MainIMUStatus != 0) {
-    return MainIMUStatus;
-  } else {
-
-  // Accel ODR = 100 Hz and Full Scale Range = 16G
-  MainIMU.startAccel(main_accel_freq, main_accel_range);
-  
-  // Gyro ODR = 100 Hz and Full Scale Range = 2000 dps
-  MainIMU.startGyro(main_gyro_freq, main_gyro_range);
-
-  return MainIMUStatus;
-
-  }
-}
-
 
 void setup() {
 
@@ -132,6 +111,65 @@ void loop() {
 
 
 
+
+
+//sensor functions
+
+void IMUread() {
+
+
+
+  inv_imu_sensor_event_t MainIMU_event;
+  MainIMU.getDataFromRegisters(MainIMU_event);
+
+  main_accel_x_g = MainIMU_event.accel[0] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
+  main_accel_y_g = MainIMU_event.accel[1] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
+  main_accel_z_g = MainIMU_event.accel[2] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
+
+  main_gyro_x_dps = MainIMU_event.gyro[0] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
+  main_gyro_y_dps = MainIMU_event.gyro[1] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
+  main_gyro_z_dps = MainIMU_event.gyro[2] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
+
+  main_temp_c = MainIMU_event.temperature;
+}
+
+void BaroRead() {
+
+  float temp(NAN), hum(NAN), pres(NAN);
+
+  BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
+  BME280::PresUnit presUnit(BME280::PresUnit_Pa);
+
+  bme.read(pres, temp, hum, tempUnit, presUnit);
+
+  baro_pressure_pa = pres;
+  baro_temp_c = temp;
+  baro_humidity_percent = hum;
+}
+
+int MainIMUSetup() {
+
+  while(!Serial) {}
+
+  int MainIMUStatus = MainIMU.begin();
+
+  if (MainIMUStatus != 0) {
+    return MainIMUStatus;
+  } else {
+
+  // Accel ODR = 100 Hz and Full Scale Range = 16G
+  MainIMU.startAccel(main_accel_freq, main_accel_range);
+  
+  // Gyro ODR = 100 Hz and Full Scale Range = 2000 dps
+  MainIMU.startGyro(main_gyro_freq, main_gyro_range);
+
+  return MainIMUStatus;
+
+  }
+}
+
+// calc functions 
+
 void IMUMahony(
     float accelX, float accelY, float accelZ,
     float gyroX,  float gyroY,  float gyroZ,
@@ -196,44 +234,6 @@ void IMUMahony(
                         1.0f - 2.0f * (q_y * q_y + q_z * q_z)) * (180.0f / PI);
 }
 
-
-
-//sensor functions
-
-void IMUread() {
-
-
-
-  inv_imu_sensor_event_t MainIMU_event;
-  MainIMU.getDataFromRegisters(MainIMU_event);
-
-  main_accel_x_g = MainIMU_event.accel[0] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
-  main_accel_y_g = MainIMU_event.accel[1] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
-  main_accel_z_g = MainIMU_event.accel[2] / main_accel_sensitivity_g_per_lsb; // Convert from raw to g
-
-  main_gyro_x_dps = MainIMU_event.gyro[0] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
-  main_gyro_y_dps = MainIMU_event.gyro[1] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
-  main_gyro_z_dps = MainIMU_event.gyro[2] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
-
-  main_temp_c = MainIMU_event.temperature;
-}
-
-void BaroRead() {
-
-  float temp(NAN), hum(NAN), pres(NAN);
-
-  BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
-  BME280::PresUnit presUnit(BME280::PresUnit_Pa);
-
-  bme.read(pres, temp, hum, tempUnit, presUnit);
-
-  baro_pressure_pa = pres;
-  baro_temp_c = temp;
-  baro_humidity_percent = hum;
-}
-
-
-// calc
 int BaroSetup() {
   if (!bme.begin()) {
     return -1;
