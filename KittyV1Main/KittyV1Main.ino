@@ -41,11 +41,10 @@ void setup() {
   if (BaroSetup() != 0) {
     Serial.println("Barometer init failed.");
   } else {
-    AltitudeKFInit(50);
+    AltitudeKFInit();
   }
 
   Serial.println("-------- Starting le Programe --------");
-  nextLoopTime = micros();
   lastLoopTime = micros();
 }
 
