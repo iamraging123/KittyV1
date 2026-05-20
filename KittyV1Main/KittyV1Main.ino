@@ -58,7 +58,7 @@ void setup() {
 
 void loop() {
 
-  //dt calc make loop same
+  //dt calc make loop same becuse it drifts sometimes and needed for constant time
   unsigned long loopStart = micros();
   dt = (loopStart - lastLoopTime) * 1e-6f;
   lastLoopTime = loopStart;
@@ -72,11 +72,16 @@ void loop() {
     AltitudeKFPredict(a_z_world_mps2, dt);
 
     if (loopStart - baro_last_read_us >= BARO_UPDATE_INTERVAL_US) {
+
       BaroRead();
+
       if (!isnan(baro_pressure_pa) && baro_pressure_pa > 10000.0f) {
+        
         baro_altitude_m = PressureToAltitude(baro_pressure_pa, P0_pa);
         AltitudeKFUpdate(baro_altitude_m, altitude_kf_R_baro);
+
       }
+
       baro_last_read_us = loopStart;
     }
 
@@ -96,7 +101,7 @@ void loop() {
   loopCounter++;
 
 
-  //based on dt calc wait CONTROL_LOOP_PERIOD_US
+  //based on dt calc wait CONTROL_LOOP_PERIOD_US to keep time const
   unsigned long elapsed = micros() - loopStart;
   if (elapsed < CONTROL_LOOP_PERIOD_US) {
     delayMicroseconds(CONTROL_LOOP_PERIOD_US - elapsed);
