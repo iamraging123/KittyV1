@@ -178,53 +178,53 @@ void IMUMahony(
 
   if (accel_mag > 0.01f) {
     
-    float inv_mag = 1.0f / accel_mag;
+    float inv_mag = 1.0f / accel_mag; // Normalize accelerometer measurement
     float ax = accelX * inv_mag;
     float ay = accelY * inv_mag;
     float az = accelZ * inv_mag;
 
     
-    float vx = 2.0f * (q_x * q_z - q_w * q_y);
+    float vx = 2.0f * (q_x * q_z - q_w * q_y); // determine gravity direction 
     float vy = 2.0f * (q_w * q_x + q_y * q_z);
     float vz = q_w * q_w - q_x * q_x - q_y * q_y + q_z * q_z;
 
 
-    float ex = ay * vz - az * vy;
+    float ex = ay * vz - az * vy; // calculate difference
     float ey = az * vx - ax * vz;
     float ez = ax * vy - ay * vx;
 
-    float accel_dev = fabsf(accel_mag - 1.0f);
-    float Kp = MAHONY_KP / (1.0f + accel_dev * R_ACCEL_SCALE);
+    float accel_dev = (accel_mag - 1.0f);
+    float Kp = MAHONY_KP / (1.0f + accel_dev * R_ACCEL_SCALE); // the further away from 1g trust this less
 
-    gx += Kp * ex;
+    gx += Kp * ex; // Apply correction
     gy += Kp * ey;
     gz += Kp * ez;
   }
 
-  float halfdt = 0.5f * dt;
-  float qw = q_w, qx = q_x, qy = q_y, qz = q_z;
+  float halfdt = 0.5f * dt; // formula uses t/2
+  float qw = q_w, qx = q_x, qy = q_y, qz = q_z; // 
 
-  q_w += (-qx * gx - qy * gy - qz * gz) * halfdt;
+  q_w += (-qx * gx - qy * gy - qz * gz) * halfdt; //intergrate gyro d/t * t = d
   q_x += ( qw * gx + qy * gz - qz * gy) * halfdt;
   q_y += ( qw * gy - qx * gz + qz * gx) * halfdt;
   q_z += ( qw * gz + qx * gy - qy * gx) * halfdt;
 
-  float inv_norm = 1.0f / sqrtf(q_w * q_w + q_x * q_x + q_y * q_y + q_z * q_z);
-  q_w *= inv_norm;
+  float inv_norm = 1.0f / sqrtf(q_w * q_w + q_x * q_x + q_y * q_y + q_z * q_z); // calculate what to normalize 
+  q_w *= inv_norm; // apply calc norm to the quat
   q_x *= inv_norm;
   q_y *= inv_norm;
   q_z *= inv_norm;
 
   mahony_roll  = atan2f(2.0f * (q_w * q_x + q_y * q_z),
-                        1.0f - 2.0f * (q_x * q_x + q_y * q_y)) * (180.0f / PI);
+                        1.0f - 2.0f * (q_x * q_x + q_y * q_y)) * (180.0f / PI); //convert quat to deg
 
   float sinp   = 2.0f * (q_w * q_y - q_z * q_x);
   if (sinp >  1.0f) sinp =  1.0f;      
   if (sinp < -1.0f) sinp = -1.0f;
-  mahony_pitch = asinf(sinp) * (180.0f / PI);
+  mahony_pitch = asinf(sinp) * (180.0f / PI); // convert quat to deg weird because arcsin something
 
   mahony_yaw   = atan2f(2.0f * (q_w * q_z + q_x * q_y),
-                        1.0f - 2.0f * (q_y * q_y + q_z * q_z)) * (180.0f / PI);
+                        1.0f - 2.0f * (q_y * q_y + q_z * q_z)) * (180.0f / PI); // convert quat to deg
 }
 
 int BaroSetup() {
