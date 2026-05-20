@@ -183,6 +183,7 @@ void IMUMahony(
     float ay = accelY * inv_mag;
     float az = accelZ * inv_mag;
 
+    
     float vx = 2.0f * (q_x * q_z - q_w * q_y);
     float vy = 2.0f * (q_w * q_x + q_y * q_z);
     float vz = q_w * q_w - q_x * q_x - q_y * q_y + q_z * q_z;
