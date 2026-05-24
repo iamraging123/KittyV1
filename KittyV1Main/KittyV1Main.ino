@@ -29,7 +29,7 @@ void setup() {
   Serial.println("I2C Initialized");
   delay(200);
 
-  // IMU setup and calibration
+  // IMU 
   Serial.println("starting IMU calibration");
 
   MainIMUSetup();
@@ -42,7 +42,7 @@ void setup() {
   MainIMUCalibration();
 
   
-  // Barometer setup
+  // Barometer 
   Serial.println("Initializing the barometer");
   if (BaroSetup() != 0) {
     Serial.println("Barometer init failed.");
