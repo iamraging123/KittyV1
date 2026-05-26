@@ -12,7 +12,7 @@
 #include "LoRa.h"
 #include "ICM42670P.h"
 #include "Adafruit_NeoPixel.h"
-#include "Melopero_SAM_M8Q.h"
+#include "SparkFun_u-blox_GNSS_v3.h"
 #include "Wire.h"
 #include "BME280I2C.h"
 #include "EnvironmentCalculations.h"
