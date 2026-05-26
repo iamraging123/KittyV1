@@ -21,7 +21,6 @@
 #include "Arduino.h"
 #include "ICM42670P.h"
 #include "BME280I2C.h"
-#include "SparkFun_u-blox_GNSS_v3.h"
 
 /****************************************************
  * ===================== CONFIG =====================
@@ -29,7 +28,7 @@
 /* ---------- I2C ---------- */
 #define PIN_I2C_SDA PB7           // I2C data line
 #define PIN_I2C_SCL PB6           // I2C clock line
-#define I2C_FREQ_HZ 300000        // I2C bus speed (300 kHz; under SAM-M10Q 320 kHz cap)
+#define I2C_FREQ_HZ 400000        // I2C bus speed (400 kHz fast mode)
 
 /* ---------- SPI ---------- */
 #define SPI1_SCK  PA5             // SPI clock
@@ -219,24 +218,16 @@ extern float baro_humidity_percent;     // Barometer humidity (%RH)
 extern float baro_altitude_m;         // Pressure-derived altitude AGL (m)
 
 /* ==================================================
- * GPS  (u-blox SAM-M10Q over I2C, SparkFun u-blox GNSS v3)
+ * GPS
  * ================================================== */
-
-#define GPS_I2C_ADDR           0x42         // Default DDC (I2C) address
-#define GPS_UPDATE_INTERVAL_US 10000000UL   // 0.1 Hz cadence for polling getPVT() (every 10 s)
-
-extern SFE_UBLOX_GNSS gnss;                 // SparkFun u-blox v3 driver instance
 
 /* Position */
 extern double gps_lat_deg;            // Latitude from GPS receiver (deg)
 extern double gps_lon_deg;            // Longitude from GPS receiver (deg)
-extern float  gps_alt_m;              // Altitude from GPS receiver (m, MSL)
+extern float  gps_alt_m;              // Altitude from GPS receiver (m)
 
 /* Fix status */
 extern uint8_t gps_fix_type;          // GPS fix type (0=none, 2=2D, 3=3D)
-extern uint8_t gps_sats_in_view;      // Satellites used in current solution
-
-extern unsigned long gps_last_read_us; // Timestamp of last GPS poll (us)
 
 /****************************************************
  * ===================== STATE ======================

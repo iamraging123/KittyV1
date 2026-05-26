@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <title>KittyV1 Attitude Visualizer</title>
 <link rel="stylesheet" href="cube_visualizer.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
 
@@ -38,11 +34,6 @@
     <div class="hud-item"><span class="label">Altitude</span><br><span class="val-alt" id="altVal">0.00</span> m</div>
     <div class="hud-item"><span class="label">V<sub>z</sub></span><br><span class="val-vz" id="vzVal">0.00</span> m/s</div>
   </div>
-  <div class="hud-row hud-row-alt">
-    <div class="hud-item"><span class="label">Lat</span><br><span class="val-lat" id="latVal">0.0000000</span>&deg;</div>
-    <div class="hud-item"><span class="label">Lon</span><br><span class="val-lon" id="lonVal">0.0000000</span>&deg;</div>
-    <div class="hud-item"><span class="label">Fix</span><br><span class="val-fix" id="fixVal">no fix</span></div>
-  </div>
 </div>
 
 <div id="loadingOverlay">Loading model...</div>
@@ -66,15 +57,6 @@
     </div>
   </div>
   <canvas id="altGraphCanvas"></canvas>
-</div>
-
-<div id="mapPanel">
-  <div class="map-header">
-    <span>GPS Map</span>
-    <button id="mapCenterBtn" title="Re-center on rocket">Center</button>
-    <button id="mapClearBtn" title="Clear trail">Clear</button>
-  </div>
-  <div id="map"></div>
 </div>
 
 <div id="serialConsole">
@@ -184,15 +166,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
 
-/* ---------- shared attitude + altitude + GPS state ---------- */
+/* ---------- shared attitude + altitude state ---------- */
 let roll = 0, pitch = 0, yaw = 0;
 let altitude = 0, verticalVelocity = 0;
-let gpsLat = NaN, gpsLon = NaN, gpsAlt = 0, gpsFix = 0;
-let hasGpsUpdate = false; /* set true when a new fix arrives; consumed by map tick */
-
-const FIX_NAMES = {
-  0: 'no fix', 1: 'dead reck', 2: '2D', 3: '3D', 4: 'GNSS+DR', 5: 'time only'
-};
 
 /* ============================================
    THREE.JS SCENE
@@ -729,9 +705,6 @@ function showMainUI() {
   document.getElementById('recordPanel').style.display = 'block';
   document.getElementById('lightPanel').style.display = 'block';
   document.getElementById('serialPortPanel').style.display = 'block';
-  document.getElementById('mapPanel').style.display = 'flex';
-  /* Leaflet needs a resize hint after its container becomes visible. */
-  if (map) setTimeout(() => map.invalidateSize(), 50);
 }
 
 function setConnectedState(label) {
@@ -770,34 +743,18 @@ async function readSerialLoop(port) {
           const trimmed = ln.trim();
           if (trimmed.length > 0) appendConsoleLine(trimmed);
           const parts = trimmed.split(/\s+/);
-          /* Accept "roll pitch yaw" (3),
-             "roll pitch yaw alt vz" (5),
-             or "roll pitch yaw alt vz lat lon gpsAlt fix" (9) */
-          if (parts.length !== 3 && parts.length !== 5 && parts.length !== 9) continue;
+          /* Accept "roll pitch yaw" (3) or "roll pitch yaw alt vz" (5) */
+          if (parts.length !== 3 && parts.length !== 5) continue;
           const r = parseFloat(parts[0]);
           const p = parseFloat(parts[1]);
           const y = parseFloat(parts[2]);
           if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
           roll = r; pitch = p; yaw = y;
-          if (parts.length >= 5) {
+          if (parts.length === 5) {
             const a  = parseFloat(parts[3]);
             const vz = parseFloat(parts[4]);
             if (!isNaN(a))  altitude = a;
             if (!isNaN(vz)) verticalVelocity = vz;
-          }
-          if (parts.length === 9) {
-            const lat = parseFloat(parts[5]);
-            const lon = parseFloat(parts[6]);
-            const gAlt = parseFloat(parts[7]);
-            const fix  = parseInt(parts[8], 10);
-            if (!isNaN(fix))  gpsFix = fix;
-            if (!isNaN(gAlt)) gpsAlt = gAlt;
-            /* Only treat lat/lon as real when the receiver reports a 2D/3D fix and the
-               value isn't the all-zero placeholder we send before first fix. */
-            if (!isNaN(lat) && !isNaN(lon) && gpsFix >= 2 && (lat !== 0 || lon !== 0)) {
-              gpsLat = lat; gpsLon = lon;
-              hasGpsUpdate = true;
-            }
           }
         }
       }
@@ -1312,66 +1269,6 @@ function drawAltGraph() {
 }
 
 /* ============================================
-   GPS MAP  (Leaflet + OpenStreetMap tiles)
-   ============================================ */
-let map = null;
-let mapMarker = null;
-let mapTrail = null;
-let mapTrailPts = [];
-let mapAutoCenter = true;
-const MAP_TRAIL_MAX = 2000;
-
-function initMap() {
-  if (map) return;
-  /* Start zoomed-out over the world; first real fix triggers a flyTo. */
-  map = L.map('map', { zoomControl: true, attributionControl: false }).setView([0, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, crossOrigin: true
-  }).addTo(map);
-  /* Tiny attribution kept compact so it doesn't fight the dark UI. */
-  L.control.attribution({ prefix: false })
-    .addAttribution('&copy; OpenStreetMap').addTo(map);
-
-  mapTrail = L.polyline([], { color: '#d4a15a', weight: 2.5, opacity: 0.85 }).addTo(map);
-
-  /* User-initiated pan turns off auto-center; "Center" button re-arms it. */
-  map.on('dragstart', () => { mapAutoCenter = false; });
-}
-
-/* Initialise immediately so the map starts loading tiles even before the UI is revealed. */
-initMap();
-
-function updateMap() {
-  if (!hasGpsUpdate || !map) return;
-  hasGpsUpdate = false;
-
-  const latlng = [gpsLat, gpsLon];
-  mapTrailPts.push(latlng);
-  if (mapTrailPts.length > MAP_TRAIL_MAX) mapTrailPts.shift();
-  mapTrail.setLatLngs(mapTrailPts);
-
-  if (!mapMarker) {
-    mapMarker = L.circleMarker(latlng, {
-      radius: 6, color: '#fff', weight: 2, fillColor: '#c27c6e', fillOpacity: 0.9
-    }).addTo(map);
-    /* First fix: zoom in to a useful scale. */
-    map.setView(latlng, 17);
-  } else {
-    mapMarker.setLatLng(latlng);
-    if (mapAutoCenter) map.panTo(latlng, { animate: true, duration: 0.3 });
-  }
-}
-
-document.getElementById('mapCenterBtn').addEventListener('click', () => {
-  mapAutoCenter = true;
-  if (mapMarker) map.setView(mapMarker.getLatLng(), Math.max(map.getZoom(), 17));
-});
-document.getElementById('mapClearBtn').addEventListener('click', () => {
-  mapTrailPts = [];
-  mapTrail.setLatLngs(mapTrailPts);
-});
-
-/* ============================================
    ANIMATION LOOP
    ============================================ */
 const DEG2RAD = Math.PI / 180;
@@ -1402,14 +1299,10 @@ function animate() {
   document.getElementById('yawVal').textContent   = yaw.toFixed(2).padStart(7);
   document.getElementById('altVal').textContent   = altitude.toFixed(2).padStart(7);
   document.getElementById('vzVal').textContent    = verticalVelocity.toFixed(2).padStart(7);
-  document.getElementById('latVal').textContent   = isNaN(gpsLat) ? '   ---   ' : gpsLat.toFixed(7);
-  document.getElementById('lonVal').textContent   = isNaN(gpsLon) ? '   ---   ' : gpsLon.toFixed(7);
-  document.getElementById('fixVal').textContent   = FIX_NAMES[gpsFix] || ('fix ' + gpsFix);
 
   recordSample();
   drawGraph();
   drawAltGraph();
-  updateMap();
   renderer.render(scene, camera);
 }
 

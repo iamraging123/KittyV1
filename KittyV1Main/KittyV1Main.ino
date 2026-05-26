@@ -2,7 +2,7 @@
 #include "LoRa.h"
 #include "ICM42670P.h"
 #include "Adafruit_NeoPixel.h"
-#include "SparkFun_u-blox_GNSS_v3.h"
+#include "Melopero_SAM_M8Q.h"
 #include "Wire.h"
 #include "BME280I2C.h"
 #include "EnvironmentCalculations.h"
@@ -42,18 +42,12 @@ void setup() {
   MainIMUCalibration();
 
   
-  // Barometer
+  // Barometer 
   Serial.println("Initializing the barometer");
   if (BaroSetup() != 0) {
     Serial.println("Barometer init failed.");
   } else {
     AltitudeKFInit();
-  }
-
-  // GPS
-  Serial.println("Initializing the GPS");
-  if (GPSSetup() != 0) {
-    Serial.println("GPS init failed.");
   }
 
   Serial.println("-------- Starting le Programe --------");
@@ -82,7 +76,7 @@ void loop() {
       BaroRead();
 
       if (!isnan(baro_pressure_pa) && baro_pressure_pa > 10000.0f) {
-
+        
         baro_altitude_m = PressureToAltitude(baro_pressure_pa, P0_pa);
         AltitudeKFUpdate(baro_altitude_m, altitude_kf_R_baro);
 
@@ -91,11 +85,6 @@ void loop() {
       baro_last_read_us = loopStart;
     }
 
-  }
-
-  if (loopStart - gps_last_read_us >= GPS_UPDATE_INTERVAL_US) {
-    GPSRead();
-    gps_last_read_us = loopStart;
   }
 
   if (loopCounter % SERIAL_PRINT_DIVIDER == 0) {
@@ -107,15 +96,7 @@ void loop() {
     Serial.print(' ');
     Serial.print(altitude_m, 2);
     Serial.print(' ');
-    Serial.print(vertical_velocity_mps, 2);
-    Serial.print(' ');
-    Serial.print(gps_lat_deg, 7);
-    Serial.print(' ');
-    Serial.print(gps_lon_deg, 7);
-    Serial.print(' ');
-    Serial.print(gps_alt_m, 2);
-    Serial.print(' ');
-    Serial.println(gps_fix_type);
+    Serial.println(vertical_velocity_mps, 2);
   }
   loopCounter++;
 
@@ -256,30 +237,6 @@ int BaroSetup() {
     return -1;
   }
   return 0;
-}
-
-int GPSSetup() {
-  // Try the default DDC (I2C) address; library probes UBX-ACK before returning true.
-  if (gnss.begin(Wire, GPS_I2C_ADDR) == false) {
-    return -1;
-  }
-  gnss.setI2COutput(COM_TYPE_UBX);   // UBX-only on I2C (skip NMEA parsing overhead)
-  gnss.setNavigationFrequency(1);    // 1 Hz solution is enough for telemetry
-  gnss.setAutoPVT(true);             // Module streams PVT; getPVT() becomes non-blocking
-  gps_last_read_us = micros();
-  return 0;
-}
-
-void GPSRead() {
-  // With auto-PVT on, getPVT() returns immediately and is true only when a new
-  // navigation message has been received in the background — no I2C poll/wait.
-  if (gnss.getPVT() == true) {
-    gps_lat_deg     = gnss.getLatitude()    * 1e-7;   // deg
-    gps_lon_deg     = gnss.getLongitude()   * 1e-7;   // deg
-    gps_alt_m       = gnss.getAltitudeMSL() * 0.001f; // mm -> m
-    gps_fix_type    = gnss.getFixType();
-    gps_sats_in_view = gnss.getSIV();
-  }
 }
 
 void MainIMUCalibration() {

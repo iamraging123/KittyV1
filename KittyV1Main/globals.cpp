@@ -17,7 +17,6 @@
 #include "Wire.h"
 #include "ICM42670P.h"
 #include "BME280I2C.h"
-#include "SparkFun_u-blox_GNSS_v3.h"
 #include "config.h"
 
 /****************************************************
@@ -114,13 +113,10 @@ float baro_humidity_percent = 0.0f;  // Barometer humidity (%RH)
 float baro_altitude_m      = 0.0f;   // Pressure-derived altitude (m)
 
 /* --- GPS --- */
-SFE_UBLOX_GNSS gnss;                // SparkFun u-blox v3 driver instance
-double  gps_lat_deg     = 0.0;      // Raw GPS latitude (deg)
-double  gps_lon_deg     = 0.0;      // Raw GPS longitude (deg)
-float   gps_alt_m       = 0.0f;     // Raw GPS altitude (m, MSL)
-uint8_t gps_fix_type    = 0;        // Fix type (0=none, 2=2D, 3=3D)
-uint8_t gps_sats_in_view = 0;       // Satellites used in solution
-unsigned long gps_last_read_us = 0; // Timestamp of last GPS poll (us)
+double  gps_lat_deg  = 0.0;         // Raw GPS latitude (deg)
+double  gps_lon_deg  = 0.0;         // Raw GPS longitude (deg)
+float   gps_alt_m    = 0.0f;        // Raw GPS altitude (m)
+uint8_t gps_fix_type = 0;           // Fix type (0=none, 2=2D, 3=3D)
 
 /****************************************************
  * =============== FLIGHT STATE ====================
