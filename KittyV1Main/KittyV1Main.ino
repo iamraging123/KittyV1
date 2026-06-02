@@ -18,7 +18,7 @@
 #include "EnvironmentCalculations.h"
 #include "BME280I2C.h"
 
-#include "config.h"
+#include "config.h" // extern variables and constants
 
 /****************************************************
  * ===================== SETUP ======================
@@ -52,7 +52,6 @@ int BaroSetup() {
 }
 
 int GPSSetup(){
-  SFE_UBLOX_GNSS myGNSS;
 
   static const uint8_t  UBX_ADDR = 0x42;     // default DDC (I2C) address
   static const uint32_t I2C_HZ   = 300000;   // Fast-mode, under the M10Q 320 kHz cap
@@ -63,6 +62,17 @@ int GPSSetup(){
   }
 
   myGNSS.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only, not NMEA (or RTCM, which is UBX-like)
+
+  /* Non-blocking GPS: the module computes a solution at this rate and pushes
+     it over I2C on its own. Match the loop's read cadence (CONTROL_LOOP_HZ /
+     GPS_Update). */
+  myGNSS.setNavigationFrequency(10);   // 10 Hz nav solutions
+
+  /* Auto-PVT: the library buffers the latest NAV-PVT in the background. The
+     getLatitude()/getFixType() etc. getters then return that cached value
+     instantly instead of triggering a blocking I2C poll inside the loop. */
+  myGNSS.setAutoPVT(true);
+
   myGNSS.saveConfiguration();
 
   Serial.print(F("Module: "));
@@ -71,8 +81,20 @@ int GPSSetup(){
   Serial.print(myGNSS.getFirmwareType());
   Serial.print(F(" "));
   Serial.println(myGNSS.getFirmwareVersionHigh());
-  
+
   return 0;
+}
+
+const char* fixName(uint8_t f) {
+  switch (f) {
+    case 0:  return "no fix";
+    case 1:  return "dead reckoning";
+    case 2:  return "2D";
+    case 3:  return "3D";
+    case 4:  return "GNSS+DR";
+    case 5:  return "time only";
+    default: return "unknown";
+  }
 }
 
 void MainIMUCalibration() {
@@ -225,7 +247,14 @@ void loop() {
     Serial.print(altitude_m, 2);
     Serial.print(' ');
     Serial.println(vertical_velocity_mps, 2);
+    
   }
+
+  if (loopCounter % GPS_Update == 0) {
+    GPSRead();
+  }
+
+
   loopCounter++;
 
 
@@ -327,6 +356,22 @@ void IMUread() {
   main_gyro_z_dps = MainIMU_event.gyro[2] / main_gyro_sensitivity_dps_per_lsb; // Convert from raw to deg/s
 
   main_temp_c = MainIMU_event.temperature;
+}
+
+void GPSRead() {
+  /* With setAutoPVT(true) the module pushes solutions in the background.
+     getPVT(0) returns immediately — true only when a fresh packet has arrived
+     since the last call — so it never blocks the 250 Hz control loop. When no
+     new fix is ready it returns false and we simply keep the previous values. */
+
+  if (myGNSS.getPVT(0) == true) {
+    gps_lat_deg  = myGNSS.getLatitude()    / 1e7;       // 1e-7 deg -> deg
+    gps_lon_deg  = myGNSS.getLongitude()   / 1e7;       // 1e-7 deg -> deg
+    gps_alt_m    = myGNSS.getAltitudeMSL() / 1000.0f;   // mm -> m
+    gps_fix_type = myGNSS.getFixType();                 // 0=none, 2=2D, 3=3D
+
+  }
+  
 }
 
 void BaroRead() {

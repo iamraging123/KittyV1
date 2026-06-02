@@ -15,6 +15,7 @@
 #include "Wire.h"
 #include "ICM42670P.h"
 #include "BME280I2C.h"
+#include "SparkFun_u-blox_GNSS_v3.h"
 #include "config.h"
 
 /****************************************************
@@ -27,6 +28,7 @@ unsigned long nextLoopTime = 0;       // Scheduled start of next loop iteration 
 unsigned long lastLoopTime = 0;       // Timestamp of previous loop start (us)
 float dt = 0.00000f;                  // Measured delta-time between loops (s)
 unsigned long loopCounter = 0;        // Running count of loop iterations
+unsigned long GPS_Update = 250;        // Read GPS every 250 loops (250 Hz / 250 = 1 Hz)
 
 /****************************************************
  * ================ PID GAINS =====================
@@ -110,6 +112,7 @@ float baro_humidity_percent = 0.0f;  // Barometer humidity (%RH)
 float baro_altitude_m      = 0.0f;   // Pressure-derived altitude (m)
 
 /* --- GPS --- */
+SFE_UBLOX_GNSS myGNSS;              // u-blox GNSS driver instance (I2C)
 double  gps_lat_deg  = 0.0;         // Raw GPS latitude (deg)
 double  gps_lon_deg  = 0.0;         // Raw GPS longitude (deg)
 float   gps_alt_m    = 0.0f;        // Raw GPS altitude (m)

@@ -18,6 +18,7 @@
 #include "Arduino.h"
 #include "ICM42670P.h"
 #include "BME280I2C.h"
+#include "SparkFun_u-blox_GNSS_v3.h"
 
 /****************************************************
  * ===================== CONFIG =====================
@@ -80,6 +81,11 @@ extern float calibration_samples;      // Number of samples for gyro bias calibr
 /* ---------- Serial Print Decimation ---------- */
 #define SERIAL_PRINT_DIVIDER 3        // Print every Nth loop iteration
 extern unsigned long loopCounter;      // Running count of loop iterations
+
+/* ---------- GPS Update Decimation ---------- */
+/* Read the GPS every Nth loop iteration. At CONTROL_LOOP_HZ the effective
+   GPS poll rate is CONTROL_LOOP_HZ / GPS_Update (e.g. 250 Hz / 25 = 10 Hz). */
+extern unsigned long GPS_Update;       // Loop iterations between GPS reads
 
 /* ---------- PID GAINS (ROLL) ---------- */
 extern float KP_ROLL;                 // Proportional gain
@@ -216,6 +222,8 @@ extern float baro_altitude_m;         // Pressure-derived altitude AGL (m)
 /* ==================================================
  * GPS
  * ================================================== */
+
+extern SFE_UBLOX_GNSS myGNSS;         // u-blox GNSS driver instance (I2C)
 
 /* Position */
 extern double gps_lat_deg;            // Latitude from GPS receiver (deg)
