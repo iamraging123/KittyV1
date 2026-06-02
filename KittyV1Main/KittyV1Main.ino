@@ -237,7 +237,10 @@ void loop() {
   }
 
   if (loopCounter % SERIAL_PRINT_DIVIDER == 0) {
-    /* Format: roll pitch yaw altitude_m vertical_velocity_mps */
+    /* Format (space-separated, one line):
+       roll pitch yaw altitude_m vertical_velocity_mps gps_lat gps_lon gps_alt_m gps_fix
+       The visualizer parses this line; gps_fix is the integer fix type
+       (0 = no fix). lat/lon are 0 until a 2D/3D fix is acquired. */
     Serial.print(mahony_roll, 2);
     Serial.print(' ');
     Serial.print(mahony_pitch, 2);
@@ -246,8 +249,15 @@ void loop() {
     Serial.print(' ');
     Serial.print(altitude_m, 2);
     Serial.print(' ');
-    Serial.println(vertical_velocity_mps, 2);
-    
+    Serial.print(vertical_velocity_mps, 2);
+    Serial.print(' ');
+    Serial.print(gps_lat_deg, 6);
+    Serial.print(' ');
+    Serial.print(gps_lon_deg, 6);
+    Serial.print(' ');
+    Serial.print(gps_alt_m, 1);
+    Serial.print(' ');
+    Serial.println(gps_fix_type);
   }
 
   if (loopCounter % GPS_Update == 0) {

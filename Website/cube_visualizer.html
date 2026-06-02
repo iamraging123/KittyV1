@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <title>KittyV1 Attitude Visualizer</title>
 <link rel="stylesheet" href="cube_visualizer.css">
+<!-- Leaflet (live GPS map). Loads as a classic script so the global `L` is
+     ready before the deferred module script below runs. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -34,6 +38,24 @@
     <div class="hud-item"><span class="label">Altitude</span><br><span class="val-alt" id="altVal">0.00</span> m</div>
     <div class="hud-item"><span class="label">V<sub>z</sub></span><br><span class="val-vz" id="vzVal">0.00</span> m/s</div>
   </div>
+</div>
+
+<div id="gpsPanel">
+  <div class="gps-header">
+    <span><span class="gps-dot" id="gpsDot"></span>GPS</span>
+    <span class="gps-fix" id="gpsFixLabel">NO FIX</span>
+  </div>
+  <div class="gps-map-wrap">
+    <div id="gpsMap"></div>
+    <div id="gpsNoFix">ACQUIRING FIX&hellip;</div>
+  </div>
+  <div class="gps-info">
+    <div class="gps-item"><span class="gps-lbl">Lat</span><span class="gps-v" id="gpsLatVal">--</span></div>
+    <div class="gps-item"><span class="gps-lbl">Lon</span><span class="gps-v" id="gpsLonVal">--</span></div>
+    <div class="gps-item"><span class="gps-lbl">GPS Alt</span><span class="gps-v" id="gpsAltVal">--</span></div>
+    <div class="gps-item"><span class="gps-lbl">Speed</span><span class="gps-v" id="gpsSpeedVal">--</span></div>
+  </div>
+  <button id="gpsCenterBtn">Recenter</button>
 </div>
 
 <div id="loadingOverlay">Loading model...</div>
@@ -169,6 +191,12 @@ import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
 /* ---------- shared attitude + altitude state ---------- */
 let roll = 0, pitch = 0, yaw = 0;
 let altitude = 0, verticalVelocity = 0;
+
+/* ---------- shared GPS state ---------- */
+let gpsLat = 0, gpsLon = 0, gpsAlt = 0, gpsFix = 0;
+let gpsHasFix = false;
+let gpsPrev = null;            // last fixed sample, for ground-speed estimate
+let gpsSpeed = 0;              // m/s over ground (derived)
 
 /* ============================================
    THREE.JS SCENE
@@ -705,6 +733,8 @@ function showMainUI() {
   document.getElementById('recordPanel').style.display = 'block';
   document.getElementById('lightPanel').style.display = 'block';
   document.getElementById('serialPortPanel').style.display = 'block';
+  document.getElementById('gpsPanel').style.display = 'block';
+  initGpsMap();
 }
 
 function setConnectedState(label) {
@@ -743,18 +773,28 @@ async function readSerialLoop(port) {
           const trimmed = ln.trim();
           if (trimmed.length > 0) appendConsoleLine(trimmed);
           const parts = trimmed.split(/\s+/);
-          /* Accept "roll pitch yaw" (3) or "roll pitch yaw alt vz" (5) */
-          if (parts.length !== 3 && parts.length !== 5) continue;
+          /* Accepted telemetry layouts:
+             3 -> roll pitch yaw
+             5 -> + altitude vz
+             9 -> + gps_lat gps_lon gps_alt gps_fix */
+          if (parts.length !== 3 && parts.length !== 5 && parts.length !== 9) continue;
           const r = parseFloat(parts[0]);
           const p = parseFloat(parts[1]);
           const y = parseFloat(parts[2]);
           if (isNaN(r) || isNaN(p) || isNaN(y)) continue;
           roll = r; pitch = p; yaw = y;
-          if (parts.length === 5) {
+          if (parts.length >= 5) {
             const a  = parseFloat(parts[3]);
             const vz = parseFloat(parts[4]);
             if (!isNaN(a))  altitude = a;
             if (!isNaN(vz)) verticalVelocity = vz;
+          }
+          if (parts.length === 9) {
+            const la = parseFloat(parts[5]);
+            const lo = parseFloat(parts[6]);
+            const ga = parseFloat(parts[7]);
+            const fx = parseInt(parts[8], 10);
+            updateGps(la, lo, ga, fx);
           }
         }
       }
@@ -855,6 +895,112 @@ function appendConsoleLine(text) {
 document.getElementById('clearConsoleBtn').addEventListener('click', () => {
   consoleLinesEl.innerHTML = '';
   consoleLineCount = 0;
+});
+
+/* ============================================
+   LIVE GPS MAP  (Leaflet)
+   ============================================ */
+let gpsMap = null;
+let gpsMarker = null;
+let gpsTrail = null;            // polyline of fixed positions
+let gpsTrailPts = [];
+let gpsAutoCenter = true;       // follow the rocket until the user pans away
+const GPS_TRAIL_MAX = 1000;
+
+const FIX_NAMES = {
+  0: 'NO FIX', 1: 'DEAD RECKONING', 2: '2D FIX',
+  3: '3D FIX', 4: 'GNSS+DR', 5: 'TIME ONLY'
+};
+
+function initGpsMap() {
+  if (gpsMap || typeof L === 'undefined') return;
+
+  gpsMap = L.map('gpsMap', { zoomControl: true }).setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(gpsMap);
+
+  gpsTrail  = L.polyline([], { color: '#d4a15a', weight: 2 }).addTo(gpsMap);
+  gpsMarker = L.circleMarker([0, 0], {
+    radius: 6, color: '#fff', weight: 2,
+    fillColor: '#4caf50', fillOpacity: 0.9
+  }).addTo(gpsMap);
+
+  /* The panel was hidden at map-creation time, so Leaflet measured a 0-size
+     container. Recompute once it's visible to avoid gray/partial tiles. */
+  setTimeout(() => gpsMap.invalidateSize(), 200);
+
+  /* Manual pan disables auto-follow until the user clicks Recenter. */
+  gpsMap.on('dragstart', () => { gpsAutoCenter = false; });
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // m
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function updateGps(lat, lon, alt, fix) {
+  gpsFix = isNaN(fix) ? 0 : fix;
+
+  /* A fix is usable only at 2D/3D and not the (0,0) null island the
+     firmware reports before the first lock. */
+  const valid = !isNaN(lat) && !isNaN(lon) && gpsFix >= 2 &&
+                !(lat === 0 && lon === 0);
+
+  const dot     = document.getElementById('gpsDot');
+  const noFixEl = document.getElementById('gpsNoFix');
+  document.getElementById('gpsFixLabel').textContent = FIX_NAMES[gpsFix] || 'UNKNOWN';
+
+  if (!valid) {
+    gpsHasFix = false;
+    dot.className = 'gps-dot nofix';
+    if (noFixEl) noFixEl.style.display = 'flex';
+    document.getElementById('gpsLatVal').textContent   = '--';
+    document.getElementById('gpsLonVal').textContent   = '--';
+    document.getElementById('gpsAltVal').textContent   = '--';
+    document.getElementById('gpsSpeedVal').textContent = '--';
+    return;
+  }
+
+  /* Ground-speed estimate from successive fixes (distance / dt). */
+  const now = performance.now();
+  if (gpsPrev) {
+    const dtSec = (now - gpsPrev.t) / 1000;
+    if (dtSec > 0.05) gpsSpeed = haversine(gpsPrev.lat, gpsPrev.lon, lat, lon) / dtSec;
+  }
+  gpsPrev = { lat, lon, t: now };
+
+  gpsLat = lat; gpsLon = lon; gpsAlt = alt; gpsHasFix = true;
+
+  dot.className = 'gps-dot fix';
+  if (noFixEl) noFixEl.style.display = 'none';
+  document.getElementById('gpsLatVal').textContent   = lat.toFixed(6) + '°';
+  document.getElementById('gpsLonVal').textContent   = lon.toFixed(6) + '°';
+  document.getElementById('gpsAltVal').textContent   = isNaN(alt) ? '--' : alt.toFixed(1) + ' m';
+  document.getElementById('gpsSpeedVal').textContent = gpsSpeed.toFixed(1) + ' m/s';
+
+  if (!gpsMap) return;
+  const ll = [lat, lon];
+  gpsMarker.setLatLng(ll);
+  gpsTrailPts.push(ll);
+  if (gpsTrailPts.length > GPS_TRAIL_MAX) gpsTrailPts.shift();
+  gpsTrail.setLatLngs(gpsTrailPts);
+
+  if (gpsAutoCenter) {
+    if (gpsMap.getZoom() < 15) gpsMap.setView(ll, 16);
+    else gpsMap.panTo(ll, { animate: false });
+  }
+}
+
+document.getElementById('gpsCenterBtn').addEventListener('click', () => {
+  gpsAutoCenter = true;
+  if (gpsMap && gpsHasFix) gpsMap.setView([gpsLat, gpsLon], 16);
 });
 
 /* ============================================

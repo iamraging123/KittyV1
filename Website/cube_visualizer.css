@@ -280,3 +280,62 @@ body { overflow: hidden; background: #141414; font-family: 'Consolas', 'Courier 
 #serialPortPanel .port-btns button:disabled:hover { background: #2a2a2a; color: #d0d0d0; }
 #serialPortPanel .port-status { margin-top: 8px; color: #777; font-size: 11px; }
 #serialPortPanel .port-hint { margin-top: 6px; color: #555; font-size: 10px; font-style: italic; }
+
+/* ---- GPS panel (live map) ---- */
+#gpsPanel {
+  position: fixed; top: 20px; left: 410px; z-index: 5;
+  width: 340px;
+  background: rgba(0, 0, 0, 0.75); border: 1px solid #333;
+  border-radius: 6px; padding: 10px 12px;
+  color: #d0d0d0; font-size: 13px; display: none;
+}
+#gpsPanel .gps-header {
+  display: flex; justify-content: space-between; align-items: center;
+  color: #888; font-size: 11px; margin-bottom: 8px;
+}
+#gpsPanel .gps-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle; background: #666;
+}
+#gpsPanel .gps-dot.fix   { background: #4caf50; box-shadow: 0 0 6px #4caf5088; }
+#gpsPanel .gps-dot.nofix { background: #c0533f; box-shadow: 0 0 6px #c0533f88; }
+#gpsPanel .gps-fix { font-weight: bold; letter-spacing: 0.5px; }
+
+.gps-map-wrap { position: relative; }
+#gpsMap {
+  width: 100%; height: 200px; border-radius: 4px;
+  background: #1a1a1a; /* shown before tiles load */
+}
+/* "No fix" cover sits on top of the map until a 2D/3D lock arrives */
+#gpsNoFix {
+  position: absolute; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 20, 20, 0.78); border-radius: 4px;
+  color: #c0533f; font-size: 14px; font-weight: bold; letter-spacing: 1px;
+  pointer-events: none;
+}
+
+#gpsPanel .gps-info {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px;
+  margin-top: 8px;
+}
+#gpsPanel .gps-item { display: flex; justify-content: space-between; }
+#gpsPanel .gps-lbl  { color: #777; font-size: 11px; }
+#gpsPanel .gps-v    { color: #d4a15a; font-size: 12px; }
+
+#gpsCenterBtn {
+  margin-top: 8px; width: 100%; padding: 5px 12px; cursor: pointer;
+  background: #2a2a2a; color: #d0d0d0; border: 1px solid #555;
+  border-radius: 4px; font-family: inherit; font-size: 12px;
+}
+#gpsCenterBtn:hover { background: #555; color: #fff; }
+
+/* Leaflet dark-theme tweaks */
+#gpsMap .leaflet-control-attribution {
+  background: rgba(0,0,0,0.6); color: #888; font-size: 9px;
+}
+#gpsMap .leaflet-control-attribution a { color: #aaa; }
+#gpsMap .leaflet-bar a {
+  background: #2a2a2a; color: #d0d0d0; border-color: #444;
+}
+#gpsMap .leaflet-bar a:hover { background: #555; color: #fff; }
