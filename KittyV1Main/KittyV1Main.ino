@@ -16,7 +16,6 @@
 #include "Wire.h"
 #include "BME280I2C.h"
 #include "EnvironmentCalculations.h"
-#include "SD.h"
 #include "BME280I2C.h"
 
 #include "config.h"
@@ -49,6 +48,30 @@ int BaroSetup() {
   if (!bme.begin()) {
     return -1;
   }
+  return 0;
+}
+
+int GPSSetup(){
+  SFE_UBLOX_GNSS myGNSS;
+
+  static const uint8_t  UBX_ADDR = 0x42;     // default DDC (I2C) address
+  static const uint32_t I2C_HZ   = 300000;   // Fast-mode, under the M10Q 320 kHz cap
+
+  if (myGNSS.begin(Wire, UBX_ADDR) == false) {
+    Serial.println(F("ERROR: u-blox module not detected on I2C."));
+    return -1;
+  }
+
+  myGNSS.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only, not NMEA (or RTCM, which is UBX-like)
+  myGNSS.saveConfiguration();
+
+  Serial.print(F("Module: "));
+  Serial.println(myGNSS.getModuleName());
+  Serial.print(F("Firmware: "));
+  Serial.print(myGNSS.getFirmwareType());
+  Serial.print(F(" "));
+  Serial.println(myGNSS.getFirmwareVersionHigh());
+  
   return 0;
 }
 
@@ -140,6 +163,9 @@ void setup() {
   MainIMUSetup();
   //SensorCheck(MainIMUSetup(), 0, 0, 0, 0, 0, 0, 0);
 
+  Serial.println("Starting GPS");
+  GPSSetup();
+
   Serial.println("running sensor calibrations...");
   delay(100);
   MainIMUCalibration();
@@ -149,6 +175,7 @@ void setup() {
   } else {
     AltitudeKFInit(50);
   }
+
 
   Serial.println("-------- Starting Program --------");
   nextLoopTime = micros();
@@ -185,11 +212,6 @@ void loop() {
       baro_last_read_us = loopStart;
     }
 
-    /* FUTURE — when GPS is wired up, call on each fresh fix:
-       if (gps_new_sample && gps_fix_type >= 3) {
-         AltitudeKFUpdate(gps_alt_m, altitude_kf_R_gps);
-       }
-    */
   }
 
   if (loopCounter % SERIAL_PRINT_DIVIDER == 0) {
