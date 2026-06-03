@@ -62,7 +62,9 @@ A legacy Euler-angle Kalman filter is preserved in comments for reference/rollba
 
 ## Attitude Visualizer
 
-Open `cube_visualizer.html` in a Chromium-based browser (Chrome, Edge) to get a real-time 3D view of the rocket's orientation over USB serial.
+**Live demo:** https://iamraging123.github.io/KittyV1/
+
+Open the live page (or `Website/index.html` locally) in a Chromium-based browser (Chrome, Edge) to get a real-time 3D view of the rocket's orientation over USB serial. The Web Serial API requires a Chromium browser served over HTTPS — the live GitHub Pages site qualifies.
 
 **Features:**
 - Connect via Web Serial API (115200 baud)
@@ -77,7 +79,7 @@ Open `cube_visualizer.html` in a Chromium-based browser (Chrome, Edge) to get a 
 1. **Flash the firmware** — Open `KittyV1Main/KittyV1Main.ino` in the Arduino IDE (or PlatformIO) with STM32 board support installed
 2. **Install libraries** — `ICM42670P`, `LoRa`, `Adafruit_NeoPixel`, `Melopero_SAM_M8Q`, `BME280I2C`
 3. **Connect hardware** — Wire sensors per the pin map in `config.h`
-4. **Visualize** — Open `cube_visualizer.html` in Chrome, click "Connect Serial", and select the COM port
+4. **Visualize** — Open the [live visualizer](https://iamraging123.github.io/KittyV1/) (or `Website/index.html`) in Chrome, click "Connect Serial", and select the COM port
 
 ## License
 
