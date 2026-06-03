@@ -56,6 +56,7 @@
       <label><input type="checkbox" id="recPitch" checked> <span style="color:#7aab85;">Pitch</span></label>
       <label><input type="checkbox" id="recYaw" checked> <span style="color:#8a9bae;">Yaw</span></label>
       <label><input type="checkbox" id="recAlt" checked> <span style="color:#d4a15a;">Alt</span></label>
+      <label><input type="checkbox" id="recGps" checked> <span style="color:#5a8bd4;">GPS</span></label>
     </div>
     <div class="rec-row">
       <select id="recDuration">
@@ -1216,7 +1217,11 @@ function recordSample() {
   if (now - lastRecordTime < RECORD_INTERVAL) return;
   lastRecordTime = now;
   const t = ((now - recordStartTime) / 1000).toFixed(3);
-  recordData.push({ t, roll, pitch, yaw, altitude });
+  /* Log GPS only when there's a valid fix; otherwise leave it blank so the
+     firmware's pre-lock (0,0) null island never ends up in the data. */
+  const lat = gpsHasFix ? gpsLat : null;
+  const lon = gpsHasFix ? gpsLon : null;
+  recordData.push({ t, roll, pitch, yaw, altitude, lat, lon });
   const dur = parseInt(recDurationEl.value);
   if (dur > 0) {
     const elapsed = (now - recordStartTime) / 1000;
@@ -1232,12 +1237,14 @@ recExportBtn.addEventListener('click', () => {
   const wantPitch = document.getElementById('recPitch').checked;
   const wantYaw   = document.getElementById('recYaw').checked;
   const wantAlt   = document.getElementById('recAlt').checked;
+  const wantGps   = document.getElementById('recGps').checked;
 
   let header = 'Time(s)';
   if (wantRoll)  header += ',Roll';
   if (wantPitch) header += ',Pitch';
   if (wantYaw)   header += ',Yaw';
   if (wantAlt)   header += ',Altitude_m';
+  if (wantGps)   header += ',Latitude,Longitude';
 
   const lines = [header];
   for (const d of recordData) {
@@ -1246,6 +1253,8 @@ recExportBtn.addEventListener('click', () => {
     if (wantPitch) row += ',' + d.pitch.toFixed(2);
     if (wantYaw)   row += ',' + d.yaw.toFixed(2);
     if (wantAlt)   row += ',' + d.altitude.toFixed(2);
+    if (wantGps)   row += ',' + (d.lat != null ? d.lat.toFixed(7) : '') +
+                          ',' + (d.lon != null ? d.lon.toFixed(7) : '');
     lines.push(row);
   }
 
