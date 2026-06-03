@@ -11,9 +11,7 @@
 </head>
 <body>
 
-<div class="side-bar left" id="sideBarLeft"></div>
-<div class="side-bar right" id="sideBarRight"></div>
-
+<!-- Full-screen overlays and hidden inputs live outside the rails -->
 <div id="overlay">
   <div class="overlay-btns">
     <button id="connectBtn">Connect Serial</button>
@@ -22,157 +20,170 @@
   <p id="status">Select your COM port when prompted (115200 baud)</p>
 </div>
 
-<div id="logoPanel">
-  <button id="logoUploadBtn">Upload Logo</button>
-  <img id="logoImg" style="display:none;">
-</div>
-<input type="file" id="logoInput" accept="image/png" style="display:none">
-
-<div id="hud">
-  <div class="hud-row">
-    <div class="hud-item"><span class="label">Roll</span><br><span class="val-roll" id="rollVal">0.00</span>&deg;</div>
-    <div class="hud-item"><span class="label">Pitch</span><br><span class="val-pitch" id="pitchVal">0.00</span>&deg;</div>
-    <div class="hud-item"><span class="label">Yaw</span><br><span class="val-yaw" id="yawVal">0.00</span>&deg;</div>
-  </div>
-  <div class="hud-row hud-row-alt">
-    <div class="hud-item"><span class="label">Altitude</span><br><span class="val-alt" id="altVal">0.00</span> m</div>
-    <div class="hud-item"><span class="label">V<sub>z</sub></span><br><span class="val-vz" id="vzVal">0.00</span> m/s</div>
-  </div>
-</div>
-
-<div id="gpsPanel">
-  <div class="gps-header">
-    <span><span class="gps-dot" id="gpsDot"></span>GPS</span>
-    <span class="gps-fix" id="gpsFixLabel">NO FIX</span>
-  </div>
-  <div class="gps-map-wrap">
-    <div id="gpsMap"></div>
-    <div id="gpsNoFix">ACQUIRING FIX&hellip;</div>
-  </div>
-  <div class="gps-info">
-    <div class="gps-item"><span class="gps-lbl">Lat</span><span class="gps-v" id="gpsLatVal">--</span></div>
-    <div class="gps-item"><span class="gps-lbl">Lon</span><span class="gps-v" id="gpsLonVal">--</span></div>
-    <div class="gps-item"><span class="gps-lbl">GPS Alt</span><span class="gps-v" id="gpsAltVal">--</span></div>
-    <div class="gps-item"><span class="gps-lbl">Speed</span><span class="gps-v" id="gpsSpeedVal">--</span></div>
-  </div>
-  <button id="gpsCenterBtn">Recenter</button>
-</div>
-
 <div id="loadingOverlay">Loading model...</div>
+
+<input type="file" id="logoInput" accept="image/png" style="display:none">
 <input type="file" id="fileInput" accept=".step,.stp,.obj,.mtl" multiple style="display:none">
 
-<div id="graphPanel">
-  <div class="graph-header">
-    <div class="graph-legend">
-      <span style="color:#c27c6e;">Roll</span>
-      <span style="color:#7aab85;">Pitch</span>
-      <span style="color:#8a9bae;">Yaw</span>
+<!-- Narrow-screen toggles to show/hide each side rail -->
+<button id="railToggleLeft"  class="rail-toggle left"  title="Toggle controls">&#9776;</button>
+<button id="railToggleRight" class="rail-toggle right" title="Toggle telemetry">&#9776;</button>
+
+<!-- ============ LEFT RAIL: brand, map, tuning controls ============ -->
+<div class="rail rail-left" id="railLeft">
+
+  <div id="logoPanel">
+    <button id="logoUploadBtn">Upload Logo</button>
+    <img id="logoImg" style="display:none;">
+  </div>
+
+  <div id="gpsPanel">
+    <div class="gps-header">
+      <span><span class="gps-dot" id="gpsDot"></span>GPS</span>
+      <span class="gps-fix" id="gpsFixLabel">NO FIX</span>
+    </div>
+    <div class="gps-map-wrap">
+      <div id="gpsMap"></div>
+      <div id="gpsNoFix">ACQUIRING FIX&hellip;</div>
+    </div>
+    <div class="gps-info">
+      <div class="gps-item"><span class="gps-lbl">Lat</span><span class="gps-v" id="gpsLatVal">--</span></div>
+      <div class="gps-item"><span class="gps-lbl">Lon</span><span class="gps-v" id="gpsLonVal">--</span></div>
+      <div class="gps-item"><span class="gps-lbl">GPS Alt</span><span class="gps-v" id="gpsAltVal">--</span></div>
+      <div class="gps-item"><span class="gps-lbl">Speed</span><span class="gps-v" id="gpsSpeedVal">--</span></div>
+    </div>
+    <button id="gpsCenterBtn">Recenter</button>
+  </div>
+
+  <div id="recordPanel">
+    <div style="margin-bottom:6px; color:#888;">Recording</div>
+    <div class="rec-channels">
+      <label><input type="checkbox" id="recRoll" checked> <span style="color:#c27c6e;">Roll</span></label>
+      <label><input type="checkbox" id="recPitch" checked> <span style="color:#7aab85;">Pitch</span></label>
+      <label><input type="checkbox" id="recYaw" checked> <span style="color:#8a9bae;">Yaw</span></label>
+      <label><input type="checkbox" id="recAlt" checked> <span style="color:#d4a15a;">Alt</span></label>
+    </div>
+    <div class="rec-row">
+      <select id="recDuration">
+        <option value="0">Manual</option>
+        <option value="5">5s</option>
+        <option value="10">10s</option>
+        <option value="30">30s</option>
+        <option value="60">60s</option>
+      </select>
+      <button id="recToggleBtn">Start</button>
+      <button id="recExportBtn">Export CSV</button>
+    </div>
+    <div class="rec-status" id="recStatus">Stopped</div>
+  </div>
+
+  <div id="lightPanel">
+    <div style="margin-bottom:6px; color:#888;">Lighting</div>
+    <label><span class="light-label">Ambient</span>
+      <input type="range" id="ltAmbient" min="0" max="3" step="0.05" value="0.7">
+      <input type="number" class="val-input" id="ltAmbientVal" value="0.70" step="0.05"></label>
+    <label><span class="light-label">Key</span>
+      <input type="range" id="ltKey" min="0" max="3" step="0.05" value="1.2">
+      <input type="number" class="val-input" id="ltKeyVal" value="1.20" step="0.05"></label>
+    <label><span class="light-label">Fill</span>
+      <input type="range" id="ltFill" min="0" max="3" step="0.05" value="0.5">
+      <input type="number" class="val-input" id="ltFillVal" value="0.50" step="0.05"></label>
+    <label><span class="light-label">Rim</span>
+      <input type="range" id="ltRim" min="0" max="3" step="0.05" value="0.35">
+      <input type="number" class="val-input" id="ltRimVal" value="0.35" step="0.05"></label>
+    <label><span class="light-label">Exposure</span>
+      <input type="range" id="ltExposure" min="0.1" max="3" step="0.05" value="1.0">
+      <input type="number" class="val-input" id="ltExposureVal" value="1.00" step="0.05"></label>
+    <button id="resetLightBtn">Reset</button>
+  </div>
+
+  <div id="yawOffsetPanel">
+    <div style="margin-bottom:6px; color:#888;">Attitude Offset</div>
+    <label><span style="color:#c27c6e; font-weight:bold;">R</span>
+      <input type="range" id="rollOff" min="-180" max="180" step="0.5" value="0">
+      <input type="number" class="val-input" id="rollOffVal" value="0.0" step="0.5">&deg;</label>
+    <label><span style="color:#7aab85; font-weight:bold;">P</span>
+      <input type="range" id="pitchOff" min="-180" max="180" step="0.5" value="0">
+      <input type="number" class="val-input" id="pitchOffVal" value="0.0" step="0.5">&deg;</label>
+    <label><span style="color:#8a9bae; font-weight:bold;">Y</span>
+      <input type="range" id="yawOff" min="-180" max="180" step="0.5" value="0">
+      <input type="number" class="val-input" id="yawOffVal" value="0.0" step="0.5">&deg;</label>
+    <button id="resetYawOffsetBtn">Reset</button>
+  </div>
+
+  <div id="offsetPanel">
+    <div style="margin-bottom:6px; color:#888;">Model Offset</div>
+    <label><span class="axis-label axis-x">X</span>
+      <input type="range" id="offX" min="-10" max="10" step="0.01" value="0">
+      <input type="number" class="val-input" id="offXVal" value="0.00" step="0.01"></label>
+    <label><span class="axis-label axis-y">Y</span>
+      <input type="range" id="offY" min="-10" max="10" step="0.01" value="0">
+      <input type="number" class="val-input" id="offYVal" value="0.00" step="0.01"></label>
+    <label><span class="axis-label axis-z">Z</span>
+      <input type="range" id="offZ" min="-10" max="10" step="0.01" value="0">
+      <input type="number" class="val-input" id="offZVal" value="0.00" step="0.01"></label>
+    <button id="resetOffsetBtn">Reset</button>
+    <button id="pickCenterBtn">Pick Center</button>
+  </div>
+</div>
+
+<!-- ============ RIGHT RAIL: connection, telemetry, graphs, console ============ -->
+<div class="rail rail-right" id="railRight">
+
+  <div id="serialPortPanel">
+    <div class="panel-header">
+      <span><span class="status-dot disconnected" id="portStatusDot"></span>Serial Port</span>
+    </div>
+    <select id="portSelect"><option value="">No ports available</option></select>
+    <div class="port-btns">
+      <button id="portRequestBtn">Add Port</button>
+      <button id="portConnectBtn">Connect</button>
+      <button id="portDisconnectBtn" disabled>Disconnect</button>
+    </div>
+    <div class="port-status" id="portStatusText">Not connected</div>
+    <button id="loadModelFloating">Load Model</button>
+    <div class="port-hint">OBJ + MTL: hold Ctrl and select both files together</div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-row">
+      <div class="hud-item"><span class="label">Roll</span><br><span class="val-roll" id="rollVal">0.00</span>&deg;</div>
+      <div class="hud-item"><span class="label">Pitch</span><br><span class="val-pitch" id="pitchVal">0.00</span>&deg;</div>
+      <div class="hud-item"><span class="label">Yaw</span><br><span class="val-yaw" id="yawVal">0.00</span>&deg;</div>
+    </div>
+    <div class="hud-row hud-row-alt">
+      <div class="hud-item"><span class="label">Altitude</span><br><span class="val-alt" id="altVal">0.00</span> m</div>
+      <div class="hud-item"><span class="label">V<sub>z</sub></span><br><span class="val-vz" id="vzVal">0.00</span> m/s</div>
     </div>
   </div>
-  <canvas id="graphCanvas"></canvas>
-</div>
 
-<div id="altGraphPanel">
-  <div class="graph-header">
-    <div class="graph-legend">
-      <span style="color:#d4a15a;">Altitude (m)</span>
+  <div id="altGraphPanel">
+    <div class="graph-header">
+      <div class="graph-legend">
+        <span style="color:#d4a15a;">Altitude (m)</span>
+      </div>
     </div>
+    <canvas id="altGraphCanvas"></canvas>
   </div>
-  <canvas id="altGraphCanvas"></canvas>
-</div>
 
-<div id="serialConsole">
-  <div class="console-header">
-    <span>Serial Monitor</span>
-    <button id="clearConsoleBtn">Clear</button>
+  <div id="graphPanel">
+    <div class="graph-header">
+      <div class="graph-legend">
+        <span style="color:#c27c6e;">Roll</span>
+        <span style="color:#7aab85;">Pitch</span>
+        <span style="color:#8a9bae;">Yaw</span>
+      </div>
+    </div>
+    <canvas id="graphCanvas"></canvas>
   </div>
-  <div id="consoleLines"></div>
-</div>
 
-<div id="lightPanel">
-  <div style="margin-bottom:6px; color:#888;">Lighting</div>
-  <label><span class="light-label">Ambient</span>
-    <input type="range" id="ltAmbient" min="0" max="3" step="0.05" value="0.7">
-    <input type="number" class="val-input" id="ltAmbientVal" value="0.70" step="0.05"></label>
-  <label><span class="light-label">Key</span>
-    <input type="range" id="ltKey" min="0" max="3" step="0.05" value="1.2">
-    <input type="number" class="val-input" id="ltKeyVal" value="1.20" step="0.05"></label>
-  <label><span class="light-label">Fill</span>
-    <input type="range" id="ltFill" min="0" max="3" step="0.05" value="0.5">
-    <input type="number" class="val-input" id="ltFillVal" value="0.50" step="0.05"></label>
-  <label><span class="light-label">Rim</span>
-    <input type="range" id="ltRim" min="0" max="3" step="0.05" value="0.35">
-    <input type="number" class="val-input" id="ltRimVal" value="0.35" step="0.05"></label>
-  <label><span class="light-label">Exposure</span>
-    <input type="range" id="ltExposure" min="0.1" max="3" step="0.05" value="1.0">
-    <input type="number" class="val-input" id="ltExposureVal" value="1.00" step="0.05"></label>
-  <button id="resetLightBtn">Reset</button>
-</div>
-
-<div id="recordPanel">
-  <div style="margin-bottom:6px; color:#888;">Recording</div>
-  <div class="rec-channels">
-    <label><input type="checkbox" id="recRoll" checked> <span style="color:#c27c6e;">Roll</span></label>
-    <label><input type="checkbox" id="recPitch" checked> <span style="color:#7aab85;">Pitch</span></label>
-    <label><input type="checkbox" id="recYaw" checked> <span style="color:#8a9bae;">Yaw</span></label>
-    <label><input type="checkbox" id="recAlt" checked> <span style="color:#d4a15a;">Alt</span></label>
+  <div id="serialConsole">
+    <div class="console-header">
+      <span>Serial Monitor</span>
+      <button id="clearConsoleBtn">Clear</button>
+    </div>
+    <div id="consoleLines"></div>
   </div>
-  <div class="rec-row">
-    <select id="recDuration">
-      <option value="0">Manual</option>
-      <option value="5">5s</option>
-      <option value="10">10s</option>
-      <option value="30">30s</option>
-      <option value="60">60s</option>
-    </select>
-    <button id="recToggleBtn">Start</button>
-    <button id="recExportBtn">Export CSV</button>
-  </div>
-  <div class="rec-status" id="recStatus">Stopped</div>
-</div>
-
-<div id="yawOffsetPanel">
-  <div style="margin-bottom:6px; color:#888;">Attitude Offset</div>
-  <label><span style="color:#c27c6e; font-weight:bold;">R</span>
-    <input type="range" id="rollOff" min="-180" max="180" step="0.5" value="0">
-    <input type="number" class="val-input" id="rollOffVal" value="0.0" step="0.5">&deg;</label>
-  <label><span style="color:#7aab85; font-weight:bold;">P</span>
-    <input type="range" id="pitchOff" min="-180" max="180" step="0.5" value="0">
-    <input type="number" class="val-input" id="pitchOffVal" value="0.0" step="0.5">&deg;</label>
-  <label><span style="color:#8a9bae; font-weight:bold;">Y</span>
-    <input type="range" id="yawOff" min="-180" max="180" step="0.5" value="0">
-    <input type="number" class="val-input" id="yawOffVal" value="0.0" step="0.5">&deg;</label>
-  <button id="resetYawOffsetBtn">Reset</button>
-</div>
-
-<div id="serialPortPanel">
-  <div class="panel-header">
-    <span><span class="status-dot disconnected" id="portStatusDot"></span>Serial Port</span>
-  </div>
-  <select id="portSelect"><option value="">No ports available</option></select>
-  <div class="port-btns">
-    <button id="portRequestBtn">Add Port</button>
-    <button id="portConnectBtn">Connect</button>
-    <button id="portDisconnectBtn" disabled>Disconnect</button>
-  </div>
-  <div class="port-status" id="portStatusText">Not connected</div>
-  <button id="loadModelFloating">Load Model</button>
-  <div class="port-hint">OBJ + MTL: hold Ctrl and select both files together</div>
-</div>
-
-<div id="offsetPanel">
-  <div style="margin-bottom:6px; color:#888;">Model Offset</div>
-  <label><span class="axis-label axis-x">X</span>
-    <input type="range" id="offX" min="-10" max="10" step="0.01" value="0">
-    <input type="number" class="val-input" id="offXVal" value="0.00" step="0.01"></label>
-  <label><span class="axis-label axis-y">Y</span>
-    <input type="range" id="offY" min="-10" max="10" step="0.01" value="0">
-    <input type="number" class="val-input" id="offYVal" value="0.00" step="0.01"></label>
-  <label><span class="axis-label axis-z">Z</span>
-    <input type="range" id="offZ" min="-10" max="10" step="0.01" value="0">
-    <input type="number" class="val-input" id="offZVal" value="0.00" step="0.01"></label>
-  <button id="resetOffsetBtn">Reset</button>
-  <button id="pickCenterBtn">Pick Center</button>
 </div>
 
 <script type="importmap">
@@ -720,8 +731,6 @@ async function refreshPortList() {
 
 function showMainUI() {
   document.getElementById('overlay').style.display = 'none';
-  document.getElementById('sideBarLeft').style.display = 'block';
-  document.getElementById('sideBarRight').style.display = 'block';
   document.getElementById('hud').style.display = 'block';
   document.getElementById('logoPanel').style.display = 'block';
   document.getElementById('loadModelFloating').style.display = 'block'; /* inside serialPortPanel */
@@ -734,8 +743,21 @@ function showMainUI() {
   document.getElementById('lightPanel').style.display = 'block';
   document.getElementById('serialPortPanel').style.display = 'block';
   document.getElementById('gpsPanel').style.display = 'block';
+  /* Rails carry the panels; reveal them and the narrow-screen toggles. */
+  document.body.classList.add('connected');
   initGpsMap();
+  /* The right rail may now be scrollable / resized — let Leaflet re-measure. */
+  if (gpsMap) setTimeout(() => gpsMap.invalidateSize(), 250);
 }
+
+/* Narrow-screen rail toggles: tap the hamburger to slide a rail in/out. */
+document.getElementById('railToggleLeft').addEventListener('click', () => {
+  document.getElementById('railLeft').classList.toggle('open');
+});
+document.getElementById('railToggleRight').addEventListener('click', () => {
+  document.getElementById('railRight').classList.toggle('open');
+  if (gpsMap) setTimeout(() => gpsMap.invalidateSize(), 250);
+});
 
 function setConnectedState(label) {
   portStatusDot.className = 'status-dot connected';
