@@ -22,7 +22,6 @@
 
 <div id="loadingOverlay">Loading model...</div>
 
-<input type="file" id="logoInput" accept="image/png" style="display:none">
 <input type="file" id="fileInput" accept=".step,.stp,.obj,.mtl" multiple style="display:none">
 
 <!-- Narrow-screen toggles to show/hide each side rail -->
@@ -31,11 +30,6 @@
 
 <!-- ============ LEFT RAIL: brand, map, tuning controls ============ -->
 <div class="rail rail-left" id="railLeft">
-
-  <div id="logoPanel">
-    <button id="logoUploadBtn">Upload Logo</button>
-    <img id="logoImg" style="display:none;">
-  </div>
 
   <div id="gpsPanel">
     <div class="gps-header">
@@ -634,58 +628,6 @@ document.getElementById('loadModelBtn').addEventListener('click', () => fileInpu
 document.getElementById('loadModelFloating').addEventListener('click', () => fileInput.click());
 
 /* ============================================
-   LOGO UPLOAD  (PNG, persisted in IndexedDB)
-   ============================================ */
-const logoInput = document.getElementById('logoInput');
-const logoImg   = document.getElementById('logoImg');
-const logoBtn   = document.getElementById('logoUploadBtn');
-
-function showLogo(dataUrl) {
-  logoImg.src = dataUrl;
-  logoImg.style.display = 'block';
-  logoBtn.style.display = 'none';
-}
-
-async function saveLogo(dataUrl) {
-  const db = await openStepDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files', 'readwrite');
-    tx.objectStore('files').put(dataUrl, 'logo');
-    tx.oncomplete = resolve;
-    tx.onerror = () => reject(tx.error);
-  });
-}
-async function loadLogo() {
-  const db = await openStepDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files', 'readonly');
-    const req = tx.objectStore('files').get('logo');
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-logoBtn.addEventListener('click', () => logoInput.click());
-logoImg.addEventListener('click', () => logoInput.click());
-logoImg.style.cursor = 'pointer';
-logoImg.title = 'Click to change logo';
-
-logoInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    showLogo(reader.result);
-    saveLogo(reader.result);
-  };
-  reader.readAsDataURL(file);
-  e.target.value = '';
-});
-
-/* Restore saved logo */
-loadLogo().then(url => { if (url) showLogo(url); }).catch(() => {});
-
-/* ============================================
    SERIAL PORT PANEL  (Web Serial API)
    ============================================ */
 const portSelect       = document.getElementById('portSelect');
@@ -732,7 +674,6 @@ async function refreshPortList() {
 function showMainUI() {
   document.getElementById('overlay').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
-  document.getElementById('logoPanel').style.display = 'block';
   document.getElementById('loadModelFloating').style.display = 'block'; /* inside serialPortPanel */
   document.getElementById('offsetPanel').style.display = 'block';
   document.getElementById('yawOffsetPanel').style.display = 'block';

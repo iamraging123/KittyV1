@@ -82,20 +82,6 @@ body { overflow: hidden; background: #141414; font-family: 'Consolas', 'Courier 
 #hud .val-alt   { color: #d4a15a; }
 #hud .val-vz    { color: #5a8bd4; }
 
-/* ---- Logo panel ---- */
-#logoPanel { display: none; }
-#logoPanel img {
-  max-width: 100%; max-height: 80px; object-fit: contain;
-  display: block;
-}
-#logoUploadBtn {
-  padding: 8px 16px; cursor: pointer;
-  background: rgba(0,0,0,0.6); color: #777;
-  border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px;
-  font-family: inherit; font-size: 12px;
-}
-#logoUploadBtn:hover { background: rgba(0,0,0,0.8); color: #bbb; border-color: rgba(255,255,255,0.3); }
-
 /* ---- Shared panel chrome (offset / attitude / lighting) ---- */
 #offsetPanel, #yawOffsetPanel, #lightPanel {
   background: rgba(0, 0, 0, 0.6); padding: 14px 18px; border-radius: 6px;

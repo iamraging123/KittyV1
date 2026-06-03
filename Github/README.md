@@ -72,7 +72,7 @@ Open the live page (or `Website/index.html` locally) in a Chromium-based browser
 - Real-time roll/pitch/yaw HUD and graph
 - Model offset and yaw offset controls for alignment
 - Record attitude data and export to CSV
-- Custom logo upload
+- Live GPS map with selectable basemaps (satellite, hybrid, streets, dark, topo)
 
 ## Getting Started
 
