@@ -1,0 +1,90 @@
+/* ============================================
+   OPTION A — "Dashboard Columns"
+   GPS banner on top, 3D model in a framed box in
+   the centre, a graph at the top of each side
+   column with the controls stacked beneath them.
+   ============================================ */
+
+:root {
+  --side-w: clamp(280px, 23vw, 360px);
+  --gps-h:  220px;
+  --gap:    10px;
+}
+
+html, body { height: 100%; }
+body { overflow: hidden; }
+
+.app-grid {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: var(--side-w) 1fr var(--side-w);
+  grid-template-rows: var(--gps-h) 1fr;
+  grid-template-areas:
+    "top  top    top"
+    "left center right";
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+/* ---- Zones ---- */
+.zone-top    { grid-area: top; min-height: 0; }
+.zone-left   { grid-area: left; }
+.zone-right  { grid-area: right; }
+.zone-center { grid-area: center; min-width: 0; min-height: 0; }
+
+/* Side columns: scroll internally; graph sits on top and grows. */
+.zone-left, .zone-right {
+  display: flex; flex-direction: column; gap: var(--gap);
+  min-height: 0; overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.zone-left::-webkit-scrollbar, .zone-right::-webkit-scrollbar { width: 6px; }
+.zone-left::-webkit-scrollbar-thumb, .zone-right::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* The two graphs anchor the top of each column and flex to fill. */
+.zone-left  #graphPanel    { flex: 1 1 220px; min-height: 200px; }
+.zone-right #altGraphPanel { flex: 1 1 220px; min-height: 200px; }
+
+/* ---- Centre 3D box ---- */
+#viewport3d {
+  position: relative;
+  width: 100%; height: 100%;
+  border: 1px solid #333; border-radius: 8px;
+  background: #141414; overflow: hidden;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.6);
+}
+#viewport3d canvas { display: block; }
+
+/* ---- GPS top banner: map fills, info sits in one row ---- */
+.zone-top #gpsPanel {
+  height: 100%; display: flex; flex-direction: column;
+}
+.zone-top .gps-map-wrap { flex: 1; min-height: 0; }
+.zone-top #gpsMap { height: 100%; }
+.zone-top .gps-info {
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between; margin-top: 6px;
+}
+.zone-top #gpsCenterBtn { width: auto; align-self: flex-start; padding: 4px 16px; }
+
+/* Hide the narrow-screen rail toggles (this layout doesn't use rails). */
+.rail-toggle { display: none; }
+
+/* ============================================
+   RESPONSIVE: collapse to a single scrolling column
+   ============================================ */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .app-grid {
+    height: auto; min-height: 100vh;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "top"
+      "center"
+      "left"
+      "right";
+  }
+  .zone-center { height: 60vh; }
+  .zone-left, .zone-right { overflow: visible; }
+}

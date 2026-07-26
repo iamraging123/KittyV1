@@ -1,0 +1,129 @@
+/* ============================================
+   OPTION B — "Cinematic + Bottom Dock"
+   Slim GPS banner on top, a large glowing 3D box
+   in the centre, ONE big graph filling each side,
+   and every control panel collected into a single
+   horizontally-scrolling dock along the bottom.
+   ============================================ */
+
+:root {
+  --side-w: clamp(200px, 16vw, 280px);  /* narrower so the graphs don't dominate */
+  --gps-h:  300px;                       /* tall enough for a square map + readouts */
+  --dock-h: 200px;
+  --gap:    10px;
+  --accent: #d4a15a;
+}
+
+html, body { height: 100%; }
+body { overflow: hidden; }
+
+.app-grid {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: var(--side-w) 1fr var(--side-w);
+  grid-template-rows: var(--gps-h) 1fr var(--dock-h);
+  grid-template-areas:
+    "top  top    top"
+    "left center right"
+    "dock dock   dock";
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+/* ---- Zones ---- */
+.zone-top    { grid-area: top;    min-height: 0; display: flex; justify-content: center; }
+.zone-left   { grid-area: left;   min-height: 0; }
+.zone-right  { grid-area: right;  min-height: 0; }
+.zone-center { grid-area: center; min-width: 0; min-height: 0; }
+.zone-dock   { grid-area: dock;   min-width: 0; }
+
+/* Sides hold a single big graph each, filling the column. */
+.zone-left, .zone-right { display: flex; }
+.zone-left  #graphPanel,
+.zone-right #altGraphPanel { flex: 1; min-height: 0; }
+
+/* ---- Centre 3D box with a subtle accent glow frame ---- */
+#viewport3d {
+  position: relative;
+  width: 100%; height: 100%;
+  border: 1px solid #3a342a; border-radius: 10px;
+  background: #141414; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(212,161,90,0.12),
+              0 0 40px rgba(212,161,90,0.10),
+              inset 0 0 80px rgba(0,0,0,0.65);
+}
+#viewport3d canvas { display: block; }
+
+/* ---- GPS top strip: a centred SQUARE map with readouts beneath ----
+   The panel shrinks to its content; the map fills the leftover height
+   and aspect-ratio:1 forces its width to match, giving a true square. */
+.zone-top #gpsPanel {
+  height: 100%; width: auto;
+  display: flex; flex-direction: column; align-items: center;
+}
+.zone-top .gps-header { width: 100%; }
+.zone-top .gps-map-wrap { flex: 1; min-height: 0; aspect-ratio: 1 / 1; }
+.zone-top #gpsMap { width: 100%; height: 100%; }
+.zone-top .gps-info {
+  width: 100%;
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between; margin-top: 6px;
+}
+.zone-top #gpsCenterBtn { width: 100%; padding: 4px 16px; }
+
+/* ============================================
+   BOTTOM DOCK — horizontal row of control cards
+   ============================================ */
+.zone-dock {
+  display: flex; gap: var(--gap); align-items: stretch;
+  overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.zone-dock::-webkit-scrollbar { height: 7px; }
+.zone-dock::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* Each dock card keeps a sensible width and never collapses. */
+.zone-dock > * {
+  flex: 0 0 auto;
+  width: 250px;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.zone-dock > *::-webkit-scrollbar { width: 6px; }
+.zone-dock > *::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* The console is the wide anchor of the dock. */
+.zone-dock #serialConsole { width: 360px; height: 100%; overflow: hidden; }
+.zone-dock #hud { width: 200px; }
+
+/* Hide the narrow-screen rail toggles (this layout doesn't use rails). */
+.rail-toggle { display: none; }
+
+/* ============================================
+   RESPONSIVE: stack into one scrolling column
+   ============================================ */
+@media (max-width: 1000px) {
+  body { overflow: auto; }
+  .app-grid {
+    height: auto; min-height: 100vh;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "top"
+      "center"
+      "left"
+      "right"
+      "dock";
+  }
+  .zone-center { height: 60vh; }
+  /* Rows are auto-height now, so size the square from its width instead. */
+  .zone-top #gpsPanel { width: min(90vw, 340px); }
+  .zone-top .gps-map-wrap { flex: none; width: 100%; }
+  .zone-left  #graphPanel,
+  .zone-right #altGraphPanel { min-height: 220px; }
+  .zone-dock { flex-wrap: wrap; overflow: visible; }
+  .zone-dock > * { height: auto; width: 250px; }
+  .zone-dock #serialConsole { height: 220px; }
+}
