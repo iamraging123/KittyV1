@@ -492,12 +492,3 @@ void AltitudeKFUpdate(float z_meas_m, float R_meas) {
   altitude_kf_P11 = P11;
 }
 
-bool launchDetect {
-  if (accel_z_g>)
-  {
-    return true;
-  } else {
-    return false;
-  }
-  
-}
